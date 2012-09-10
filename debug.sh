@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
-#ant debug
-#adb -d install -r bin/reader-debug.apk
+if test `adb get-state` != device
+then
+  echo Error: device is not connected to the Android Debug Bridge
+fi
+ant debug
+adb -d install -r bin/reader-debug.apk
 adb -d shell 'am start -D -n org.yegor.reader/org.yegor.reader.UIHandler'
 for pid in `adb -d jdwp`
 do
@@ -11,4 +15,4 @@ do
     exec jdb -connect com.sun.jdi.SocketAttach:hostname=localhost,port=29882
   fi
 done
-echo Debug launch failure
+echo Error: debug launch failure
