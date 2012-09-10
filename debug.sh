@@ -1,7 +1,29 @@
 #!/usr/bin/env bash
-PROJECT=reader
-PACKAGE=org.yegor.reader
-ACTIVITY=UIHandler
+
+PROJECT=$(xmllint --xpath 'string(/project/@name)' build.xml) 
+if test -z $PROJECT
+then
+  echo Error: cannot parse ant build file build.xml >&2
+  exit 1
+fi
+echo Project: $PROJECT
+
+PACKAGE=$(xmllint --xpath 'string(/manifest/@package)' AndroidManifest.xml) 
+if test -z $PACKAGE 
+then
+  echo Error: cannot parse package manifest file AndroidManifest.xml >&2
+  exit 1
+fi
+echo Package: $PACKAGE
+
+#The script launches first activity declared in the manifest file
+ACTIVITY=$(xmllint --xpath "string(/manifest/application/activity[1]/@*[namespace-uri()='http://schemas.android.com/apk/res/android' and local-name()='name'])" AndroidManifest.xml) 
+if test -z $ACTIVITY 
+then
+  echo Error: cannot parse package manifest file AndroidManifest.xml >&2
+  exit 1
+fi
+echo Activity: $ACTIVITY
 
 if test `adb get-state` != device
 then
