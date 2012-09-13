@@ -29,9 +29,18 @@ if test `adb get-state` != device
 then
   echo Error: device is not connected to the Android Debug Bridge
 fi
-ant debug
+
+ant debug || exit 1
 adb -d install -r bin/$PROJECT-debug.apk
-adb -d shell "am start -D -n $PACKAGE/$PACKAGE.$ACTIVITY"
+
+if test "$1" = nodebug
+then
+  adb -d shell "am start -n $PACKAGE/$PACKAGE.$ACTIVITY"
+  exit 0
+else
+  adb -d shell "am start -D -n $PACKAGE/$PACKAGE.$ACTIVITY"
+fi
+
 for pid in `adb -d jdwp`
 do
   name=$(adb shell ps $pid | awk -v RS=\\r\\n 'NR==2 {printf $NF}')
