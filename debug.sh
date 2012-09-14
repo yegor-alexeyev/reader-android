@@ -30,7 +30,7 @@ then
   echo Error: device is not connected to the Android Debug Bridge
 fi
 
-ant debug || exit 1
+ant nodeps debug || exit 1
 adb -d install -r bin/$PROJECT-debug.apk
 
 if test "$1" = nodebug

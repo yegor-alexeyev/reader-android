@@ -2,15 +2,20 @@ package org.yegor.reader;
 
 import java.util.List;
 
+import org.opencv.android.OpenCVLoader;
+
 import android.hardware.Camera;
 import android.app.AlertDialog;
 import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
 
+import org.yegor.reader.OpenCVLoaderCallback;
+
 public class UIHandler extends Activity
 {
     private static final String TAG = "reader_UIHandler";
+    private Camera camera;
 
     public UIHandler() {
       Log.i(TAG,"UIHandler::UIHandler()");
@@ -33,11 +38,18 @@ public class UIHandler extends Activity
     {
         super.onCreate(savedInstanceState);
         Log.i(TAG,"UIHandler::onCreate()");
+        if (!OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_2, this, new OpenCVLoaderCallback(this)))
+        {
+            String errorMessage= "Cannot connect to OpenCV Manager";
+            Log.e(TAG,errorMessage);
+            throw new RuntimeException(errorMessage);
+        }
         setContentView(R.layout.main);
     }
 
     @Override
-    public void onStart() {
+    public void onStart()
+    {
         super.onStart();
         Log.i(TAG,"UIHandler::onStart()");
     }
@@ -47,26 +59,16 @@ public class UIHandler extends Activity
     {
         super.onResume();
         Log.i(TAG,"UIHandler::onResume()");
-        Camera camera=Camera.open();
+        camera=Camera.open();
         Camera.Parameters parameters=camera.getParameters();
 
-
-        List<Camera.Size> sizes = parameters.getSupportedPreviewSizes();
-
-        String sizesString = "";
-        for (Camera.Size size: sizes) {
-            sizesString+=size.width+"x"+size.height+", ";
-        }
-
-        AlertDialog infoBox = new AlertDialog.Builder(this).create();
-        infoBox.setMessage("The supported preview sizes: " + sizesString);
-        infoBox.show();
     }
 
     @Override
     public void onPause() {
-      super.onPause();
-      Log.i(TAG,"UIHandler::onPause()");
+        super.onPause();
+        camera.release();
+        Log.i(TAG,"UIHandler::onPause()");
     }
 
     @Override
