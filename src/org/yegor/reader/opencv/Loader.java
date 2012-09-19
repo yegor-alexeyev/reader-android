@@ -13,7 +13,7 @@ import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 
 public class Loader {
-        final static String TAG= "reader_opencv_Loader";
+    final static String TAG= "reader_opencv_Loader";
 
     public interface ResultListener {
         void onOpenCVLoaded();
@@ -32,6 +32,7 @@ public class Loader {
 
         @Override
         public void onManagerConnected(int status) {
+            Log.i(TAG,"onManagerConnected");
             switch (status) {
                 case LoaderCallbackInterface.SUCCESS:
                 {

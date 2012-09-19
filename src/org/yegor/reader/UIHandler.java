@@ -20,7 +20,7 @@ public class UIHandler extends Activity implements Loader.ResultListener
     private Camera camera;
 
     public UIHandler() {
-      Log.i(TAG,"UIHandler::UIHandler()");
+      Log.i(TAG,"UIHandler()");
     }
     @Override
     public void onSaveInstanceState(Bundle bundle) {
@@ -36,6 +36,7 @@ public class UIHandler extends Activity implements Loader.ResultListener
 
     @Override
     public void onOpenCVLoaded() {
+        Log.i(TAG,"onOpenCVLoaded()");
        initializationLatch.countDown(); 
     }
 
@@ -44,7 +45,7 @@ public class UIHandler extends Activity implements Loader.ResultListener
     public void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
-        Log.i(TAG,"UIHandler::onCreate()");
+        Log.i(TAG,"onCreate()");
         Loader.startLoad(this,this);
         setContentView(R.layout.main);
     }
@@ -53,14 +54,14 @@ public class UIHandler extends Activity implements Loader.ResultListener
     public void onStart()
     {
         super.onStart();
-        Log.i(TAG,"UIHandler::onStart()");
+        Log.i(TAG,"onStart()");
     }
 
     @Override
     public void onResume() 
     {
         super.onResume();
-        Log.i(TAG,"UIHandler::onResume()");
+        Log.i(TAG,"onResume()");
         try {
             initializationLatch.await();
         } catch (InterruptedException exception) {
@@ -75,18 +76,18 @@ public class UIHandler extends Activity implements Loader.ResultListener
     public void onPause() {
         super.onPause();
         camera.release();
-        Log.i(TAG,"UIHandler::onPause()");
+        Log.i(TAG,"onPause()");
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        Log.i(TAG,"UIHandler::onStop()");
+        Log.i(TAG,"onStop()");
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Log.i(TAG,"UIHandler::onDestroy()");
+        Log.i(TAG,"onDestroy()");
     }
 }
