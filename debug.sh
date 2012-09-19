@@ -25,7 +25,7 @@ then
 fi
 echo Activity: $ACTIVITY
 
-if test `adb get-state` != device
+if test `adb get-state| tail --lines=1` != device
 then
   echo Error: device is not connected to the Android Debug Bridge
 fi
