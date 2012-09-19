@@ -1,7 +1,7 @@
 package org.yegor.reader;
 
 import java.util.List;
-
+import java.util.concurrent.CountDownLatch;
 
 import android.hardware.Camera;
 import android.app.AlertDialog;
@@ -14,6 +14,9 @@ import org.yegor.reader.opencv.Loader;
 public class UIHandler extends Activity implements Loader.ResultListener
 {
     private static final String TAG = "reader_UIHandler";
+
+    private final CountDownLatch initializationLatch= new CountDownLatch(1);
+
     private Camera camera;
 
     public UIHandler() {
@@ -33,6 +36,7 @@ public class UIHandler extends Activity implements Loader.ResultListener
 
     @Override
     public void onOpenCVLoaded() {
+       initializationLatch.countDown(); 
     }
 
     /** Called when the activity is first created. */
@@ -57,6 +61,11 @@ public class UIHandler extends Activity implements Loader.ResultListener
     {
         super.onResume();
         Log.i(TAG,"UIHandler::onResume()");
+        try {
+            initializationLatch.await();
+        } catch (InterruptedException exception) {
+            throw new RuntimeException(exception);
+        }
         camera=Camera.open();
         Camera.Parameters parameters=camera.getParameters();
 
