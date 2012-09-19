@@ -2,7 +2,6 @@ package org.yegor.reader;
 
 import java.util.List;
 
-import org.opencv.android.OpenCVLoader;
 
 import android.hardware.Camera;
 import android.app.AlertDialog;
@@ -10,9 +9,9 @@ import android.app.Activity;
 import android.os.Bundle;
 import android.util.Log;
 
-import org.yegor.reader.OpenCVLoaderCallback;
+import org.yegor.reader.opencv.Loader;
 
-public class UIHandler extends Activity
+public class UIHandler extends Activity implements Loader.ResultListener
 {
     private static final String TAG = "reader_UIHandler";
     private Camera camera;
@@ -32,18 +31,17 @@ public class UIHandler extends Activity
         Log.i(TAG,"onRestoreInstanceState(Bundle)");
     }
 
+    @Override
+    public void onOpenCVLoaded() {
+    }
+
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState)
     {
         super.onCreate(savedInstanceState);
         Log.i(TAG,"UIHandler::onCreate()");
-        if (!OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_2_4_2, this, new OpenCVLoaderCallback(this)))
-        {
-            String errorMessage= "Cannot connect to OpenCV Manager";
-            Log.e(TAG,errorMessage);
-            throw new RuntimeException(errorMessage);
-        }
+        Loader.startLoad(this,this);
         setContentView(R.layout.main);
     }
 
