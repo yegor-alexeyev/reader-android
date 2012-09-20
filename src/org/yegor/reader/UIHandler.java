@@ -14,7 +14,7 @@ import android.util.Log;
 import org.yegor.reader.opencv.Loader;
 
 
-public class UIHandler extends Activity implements Loader.ResultListener, SurfaceHolder.Callback2
+public class UIHandler extends Activity implements Loader.ResultListener, SurfaceHolder.Callback2, Camera.AutoFocusCallback 
 {
     private static final String TAG = "reader_UIHandler";
 
@@ -43,6 +43,35 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
        initializationLatch.countDown(); 
     }
 
+    @Override
+    public void onAutoFocus(boolean success,Camera camera) {
+        Log.i(TAG,"onAutoFocus(success== " + success + " )");
+    }
+
+    private void openCamera() {
+        camera= Camera.open();
+        if (camera == null) {
+            throw new RuntimeException("This device does not have a back-facing camera");
+        }
+        Camera.Parameters parameters= camera.getParameters();
+        if (parameters.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
+            parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+        }
+
+        if (parameters.getSupportedSceneModes().contains(Camera.Parameters.SCENE_MODE_BARCODE)) {
+            parameters.setSceneMode(Camera.Parameters.SCENE_MODE_BARCODE);
+        }
+
+        camera.setParameters(parameters);
+        Log.i(TAG,"Scene mode: " + parameters.getSceneMode());
+        Log.i(TAG,"Focus mode: " + parameters.getFocusMode());
+    }
+
+    private void releaseCamera() {
+        camera.release();
+        camera= null;
+    } 
+
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState)
@@ -50,10 +79,7 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
         super.onCreate(savedInstanceState);
         Log.i(TAG,"onCreate()");
         Loader.startLoad(this,this);
-        camera= Camera.open();
-        if (camera == null) {
-            throw new RuntimeException("This device does not have a back-facing camera");
-        }
+        openCamera();
         getWindow().takeSurface(this);
     }
 
@@ -70,7 +96,7 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
         super.onResume();
         Log.i(TAG,"onResume()");
         if (camera == null) {
-            camera= Camera.open();
+            openCamera();
         }
 /*
         try {
@@ -79,14 +105,8 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
             throw new RuntimeException(exception);
         }
 */
-        Camera.Parameters parameters=camera.getParameters();
 
     }
-
-    private void releaseCamera() {
-        camera.release();
-        camera= null;
-    } 
 
     @Override
     public void onPause() {
@@ -116,6 +136,11 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
             throw new RuntimeException(exception);
         }
         camera.startPreview();
+/*
+        if (camera.getParameters().getFocusMode().equals(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
+            camera.autoFocus(this);
+        }
+*/
         Log.i(TAG,"surfaceCreated("+holder+")");
     }
 
