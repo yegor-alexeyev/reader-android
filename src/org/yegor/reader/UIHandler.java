@@ -14,7 +14,7 @@ import android.util.Log;
 import org.yegor.reader.opencv.Loader;
 
 
-public class UIHandler extends Activity implements Loader.ResultListener, SurfaceHolder.Callback2, Camera.AutoFocusCallback 
+public class UIHandler extends Activity implements Loader.ResultListener, SurfaceHolder.Callback2
 {
     private static final String TAG = "reader_UIHandler";
 
@@ -41,11 +41,6 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
     public void onOpenCVLoaded() {
         Log.i(TAG,"onOpenCVLoaded()");
        initializationLatch.countDown(); 
-    }
-
-    @Override
-    public void onAutoFocus(boolean success,Camera camera) {
-        Log.i(TAG,"onAutoFocus(success== " + success + " )");
     }
 
     private void openCamera() {
@@ -136,11 +131,7 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
             throw new RuntimeException(exception);
         }
         camera.startPreview();
-/*
-        if (camera.getParameters().getFocusMode().equals(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
-            camera.autoFocus(this);
-        }
-*/
+
         Log.i(TAG,"surfaceCreated("+holder+")");
     }
 
