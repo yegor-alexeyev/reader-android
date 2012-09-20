@@ -14,7 +14,7 @@ import android.util.Log;
 import org.yegor.reader.opencv.Loader;
 
 
-public class UIHandler extends Activity implements Loader.ResultListener, SurfaceHolder.Callback2
+public class UIHandler extends Activity implements Loader.ResultListener, SurfaceHolder.Callback2, Camera.PreviewCallback
 {
     private static final String TAG = "reader_UIHandler";
 
@@ -63,6 +63,8 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
     }
 
     private void releaseCamera() {
+        camera.stopPreview();
+        camera.setPreviewCallback(null);
         camera.release();
         camera= null;
     } 
@@ -122,6 +124,16 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
         Log.i(TAG,"onDestroy()");
     }
 
+    private int frameCounter;
+
+    @Override
+    public void onPreviewFrame(byte[] data,Camera camera) {
+        frameCounter++;
+        if (frameCounter % 100 == 0) {
+            Log.i(TAG,"onPreviewFrame");
+        }
+    }
+
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
         try {
@@ -130,6 +142,7 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
             Log.e(TAG,"Error executing Camera::setPreviewDisplay("+holder+")");
             throw new RuntimeException(exception);
         }
+        camera.setPreviewCallback(this);
         camera.startPreview();
 
         Log.i(TAG,"surfaceCreated("+holder+")");
@@ -143,9 +156,6 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
         Log.i(TAG,"surfaceDestroyed()");
-        if (camera != null) {
-            camera.stopPreview();
-        }
     } 
 
     @Override
