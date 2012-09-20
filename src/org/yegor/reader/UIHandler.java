@@ -1,17 +1,20 @@
 package org.yegor.reader;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 import android.hardware.Camera;
 import android.app.AlertDialog;
 import android.app.Activity;
+import android.view.SurfaceHolder;
 import android.os.Bundle;
 import android.util.Log;
 
 import org.yegor.reader.opencv.Loader;
 
-public class UIHandler extends Activity implements Loader.ResultListener
+
+public class UIHandler extends Activity implements Loader.ResultListener, SurfaceHolder.Callback2
 {
     private static final String TAG = "reader_UIHandler";
 
@@ -47,7 +50,11 @@ public class UIHandler extends Activity implements Loader.ResultListener
         super.onCreate(savedInstanceState);
         Log.i(TAG,"onCreate()");
         Loader.startLoad(this,this);
-        setContentView(R.layout.main);
+        camera= Camera.open();
+        if (camera == null) {
+            throw new RuntimeException("This device does not have a back-facing camera");
+        }
+        getWindow().takeSurface(this);
     }
 
     @Override
@@ -62,21 +69,30 @@ public class UIHandler extends Activity implements Loader.ResultListener
     {
         super.onResume();
         Log.i(TAG,"onResume()");
+        if (camera == null) {
+            camera= Camera.open();
+        }
+/*
         try {
             initializationLatch.await();
         } catch (InterruptedException exception) {
             throw new RuntimeException(exception);
         }
-        camera=Camera.open();
+*/
         Camera.Parameters parameters=camera.getParameters();
 
     }
 
+    private void releaseCamera() {
+        camera.release();
+        camera= null;
+    } 
+
     @Override
     public void onPause() {
         super.onPause();
-        camera.release();
         Log.i(TAG,"onPause()");
+        releaseCamera();
     }
 
     @Override
@@ -89,5 +105,35 @@ public class UIHandler extends Activity implements Loader.ResultListener
     public void onDestroy() {
         super.onDestroy();
         Log.i(TAG,"onDestroy()");
+    }
+
+    @Override
+    public void surfaceCreated(SurfaceHolder holder) {
+        try {
+            camera.setPreviewDisplay(holder);
+        } catch (IOException exception) {
+            Log.e(TAG,"Error executing Camera::setPreviewDisplay("+holder+")");
+            throw new RuntimeException(exception);
+        }
+        camera.startPreview();
+        Log.i(TAG,"surfaceCreated("+holder+")");
+    }
+
+    @Override
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+        Log.i(TAG,"surfaceChanged()");
+    }
+
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder) {
+        Log.i(TAG,"surfaceDestroyed()");
+        if (camera != null) {
+            camera.stopPreview();
+        }
+    } 
+
+    @Override
+    public void surfaceRedrawNeeded(SurfaceHolder holder) {
+        Log.i(TAG,"surfaceRedrawNeeded()");
     }
 }
