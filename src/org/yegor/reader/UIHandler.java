@@ -1,12 +1,15 @@
 package org.yegor.reader;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.SynchronousQueue;
 
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.ImageFormat;
+import android.graphics.Paint;
 import android.hardware.Camera;
 import android.app.AlertDialog;
 import android.app.Activity;
@@ -26,6 +29,7 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
     private final CountDownLatch initializationLatch= new CountDownLatch(1);
 
     private Camera camera;
+    private Camera.Size previewSize;
 
     private Thread previewProcessor;
 
@@ -60,6 +64,8 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
         int previewRotationAngle= 360 - Utility.getCameraOrientationAngle(cameraId);
         camera.setDisplayOrientation(previewRotationAngle);
         Camera.Parameters parameters= camera.getParameters();
+        previewSize= parameters.getPreviewSize();
+        Log.i(TAG,"Camera preview size: " + previewSize.width + "x" + previewSize.height);
         if (parameters.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
             parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
         }
@@ -154,13 +160,22 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
         while (!Thread.currentThread().isInterrupted()) {
             try {
                 byte[] previewFrame= previewFramesPipe.take();
-                Canvas canvas= mainSurfaceHolder.lockCanvas();
-                if (canvas != null) {
-                    canvas.drawRGB(previewFrame[0],previewFrame[1],previewFrame[2]);
-                    mainSurfaceHolder.unlockCanvasAndPost(canvas);
+                Log.d(TAG,"received preview frame: length = " + previewFrame.length);
+                if (previewSize.width % 16 == 0 && previewSize.height % 16 == 0) {
+                    int[] planeYdata= new int[previewSize.width*previewSize.height]; 
+                    for (int i=0; i < planeYdata.length; i++) {
+                        planeYdata[i]= previewFrame[i];
+                    }
+                    Bitmap planeY= Bitmap.createBitmap(planeYdata,previewSize.width,previewSize.height,Bitmap.Config.RGB_565);
+                    Canvas canvas= mainSurfaceHolder.lockCanvas();
+                    canvas.drawBitmap(planeY,0f,0f,new Paint());
+                    if (canvas != null) {
+                        mainSurfaceHolder.unlockCanvasAndPost(canvas);
+                    }
+                } else {
+                    Log.e(TAG,"Unsupported preview frame size");
                 }
                 
-                //Log.d(TAG,"received preview frame: length = " + previewFrame.length);
             } catch (InterruptedException exception) {
                 return;
             }
