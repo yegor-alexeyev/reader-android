@@ -9,11 +9,13 @@ import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.app.AlertDialog;
 import android.app.Activity;
+import android.view.Display;
 import android.view.SurfaceHolder;
 import android.os.Bundle;
 import android.util.Log;
 
 import org.yegor.reader.opencv.Loader;
+import org.yegor.reader.hardware.camera.Utility;
 
 
 public class UIHandler extends Activity implements Loader.ResultListener, SurfaceHolder.Callback2, Camera.PreviewCallback,Runnable
@@ -48,10 +50,14 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
     }
 
     private void openCamera() {
-        camera= Camera.open();
-        if (camera == null) {
+        List<Integer> cameras= Utility.listCameras(Camera.CameraInfo.CAMERA_FACING_BACK);
+        if (cameras.isEmpty()) {
             throw new RuntimeException("This device does not have a back-facing camera");
         }
+        int cameraId= cameras.get(0);
+        camera= Camera.open(cameraId);
+        int previewRotationAngle= 360 - Utility.getCameraOrientationAngle(cameraId);
+        camera.setDisplayOrientation(previewRotationAngle);
         Camera.Parameters parameters= camera.getParameters();
         if (parameters.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
             parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
@@ -143,7 +149,7 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
         while (!Thread.currentThread().isInterrupted()) {
             try {
                 byte[] previewFrame= previewFramesPipe.take();
-                Log.d(TAG,"received preview frame: length = " + previewFrame.length);
+                //Log.d(TAG,"received preview frame: length = " + previewFrame.length);
             } catch (InterruptedException exception) {
                 return;
             }
