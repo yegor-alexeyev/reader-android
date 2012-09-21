@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.SynchronousQueue;
 
+import android.graphics.Canvas;
 import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.app.AlertDialog;
@@ -67,6 +68,10 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
             parameters.setSceneMode(Camera.Parameters.SCENE_MODE_BARCODE);
         }
 
+        if (!parameters.getSupportedPreviewFormats().contains(ImageFormat.YV12)) {
+           throw new RuntimeException("YV12 camera preview image format is not supported");
+        }
+        parameters.setPreviewFormat(ImageFormat.YV12);
         camera.setParameters(parameters);
         Log.i(TAG,"Scene mode: " + parameters.getSceneMode());
         Log.i(TAG,"Focus mode: " + parameters.getFocusMode());
@@ -149,6 +154,12 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
         while (!Thread.currentThread().isInterrupted()) {
             try {
                 byte[] previewFrame= previewFramesPipe.take();
+                Canvas canvas= mainSurfaceHolder.lockCanvas();
+                if (canvas != null) {
+                    canvas.drawRGB(previewFrame[0],previewFrame[1],previewFrame[2]);
+                    mainSurfaceHolder.unlockCanvasAndPost(canvas);
+                }
+                
                 //Log.d(TAG,"received preview frame: length = " + previewFrame.length);
             } catch (InterruptedException exception) {
                 return;
@@ -156,14 +167,19 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
         }
     }
 
+    private SurfaceHolder mainSurfaceHolder;
+
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
+        mainSurfaceHolder= holder;
+/*
         try {
             camera.setPreviewDisplay(holder);
         } catch (IOException exception) {
             Log.e(TAG,"Error executing Camera::setPreviewDisplay("+holder+")");
             throw new RuntimeException(exception);
         }
+*/
         camera.setPreviewCallback(this);
         camera.startPreview();
         previewProcessor= new Thread(this);
