@@ -3,7 +3,9 @@ package org.yegor.reader;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.SynchronousQueue;
 
+import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.app.AlertDialog;
 import android.app.Activity;
@@ -14,13 +16,15 @@ import android.util.Log;
 import org.yegor.reader.opencv.Loader;
 
 
-public class UIHandler extends Activity implements Loader.ResultListener, SurfaceHolder.Callback2, Camera.PreviewCallback
+public class UIHandler extends Activity implements Loader.ResultListener, SurfaceHolder.Callback2, Camera.PreviewCallback,Runnable
 {
     private static final String TAG = "reader_UIHandler";
 
     private final CountDownLatch initializationLatch= new CountDownLatch(1);
 
     private Camera camera;
+
+    private Thread previewProcessor;
 
     public UIHandler() {
       Log.i(TAG,"UIHandler()");
@@ -110,6 +114,7 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
         super.onPause();
         Log.i(TAG,"onPause()");
         releaseCamera();
+        previewProcessor.interrupt();
     }
 
     @Override
@@ -124,13 +129,24 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
         Log.i(TAG,"onDestroy()");
     }
 
-    private int frameCounter;
+    private SynchronousQueue<byte[]> previewFramesPipe= new SynchronousQueue<byte[]>();
 
     @Override
     public void onPreviewFrame(byte[] data,Camera camera) {
-        frameCounter++;
-        if (frameCounter % 100 == 0) {
-            Log.i(TAG,"onPreviewFrame");
+        if (!previewFramesPipe.offer(data)) {
+            Log.d(TAG,"Preview frame was skipped");
+        }
+    }
+
+    @Override
+    public void run() {
+        while (!Thread.currentThread().isInterrupted()) {
+            try {
+                byte[] previewFrame= previewFramesPipe.take();
+                Log.d(TAG,"received preview frame: length = " + previewFrame.length);
+            } catch (InterruptedException exception) {
+                return;
+            }
         }
     }
 
@@ -144,6 +160,8 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
         }
         camera.setPreviewCallback(this);
         camera.startPreview();
+        previewProcessor= new Thread(this);
+        previewProcessor.start();
 
         Log.i(TAG,"surfaceCreated("+holder+")");
     }
