@@ -31,14 +31,16 @@ then
 fi
 
 ant nodeps debug || exit 1
+adb uninstall $PACKAGE
 adb -d install -r bin/$PROJECT-debug.apk
+#adb -d install -r bin/$PROJECT-release.apk
 
 if test "$1" = nodebug
 then
-  adb -d shell "am start -n $PACKAGE/$PACKAGE.$ACTIVITY"
+  adb -d shell "am start -W -n $PACKAGE/$PACKAGE.$ACTIVITY"
   exit 0
 else
-  adb -d shell "am start -D -n $PACKAGE/$PACKAGE.$ACTIVITY"
+  adb -d shell "am start -W -D -n $PACKAGE/$PACKAGE.$ACTIVITY"
 fi
 
 for pid in `adb -d jdwp`
