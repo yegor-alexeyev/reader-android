@@ -175,10 +175,12 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
 
 
                     Canvas canvas= mainSurfaceHolder.lockCanvas();
-                    canvas.scale(1.3f,1.3f);
-                    canvas.drawBitmap(planeY,0f,80f,new Paint());
                     if (canvas != null) {
-                        mainSurfaceHolder.unlockCanvasAndPost(canvas);
+                        canvas.scale(1.3f,1.3f);
+                        canvas.drawBitmap(planeY,0f,80f,new Paint());
+                        if (canvas != null) {
+                            mainSurfaceHolder.unlockCanvasAndPost(canvas);
+                        }
                     }
                 } else {
                     Log.e(TAG,"Unsupported preview frame size");
