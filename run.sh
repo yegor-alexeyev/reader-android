@@ -42,11 +42,11 @@ echo 'Installing package: '; adb -d install -r bin/$PROJECT-$1.apk
 
 if test "$1" = debug
 then
-  DEBUG_FLAG=-D
+  DEBUG_FLAGS='-W -D'
 else
-  DEBUG_FLAG=''
+  DEBUG_FLAGS=''
 fi
-echo 'Starting package activity: '; adb -d shell "am start -W "$DEBUG_FLAG" -n $PACKAGE/$PACKAGE.$ACTIVITY"
+echo 'Starting package activity: '; adb -d shell "am start "$DEBUG_FLAGS" -n $PACKAGE/$PACKAGE.$ACTIVITY"
 if test "$1" = debug
 then
   while true
