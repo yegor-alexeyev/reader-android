@@ -8,6 +8,7 @@ import java.util.concurrent.SynchronousQueue;
 
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.ImageFormat;
 import android.graphics.Paint;
 import android.hardware.Camera;
@@ -74,10 +75,6 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
             parameters.setSceneMode(Camera.Parameters.SCENE_MODE_BARCODE);
         }
 
-        if (!parameters.getSupportedPreviewFormats().contains(ImageFormat.YV12)) {
-           throw new RuntimeException("YV12 camera preview image format is not supported");
-        }
-        parameters.setPreviewFormat(ImageFormat.YV12);
         camera.setParameters(parameters);
         Log.i(TAG,"Scene mode: " + parameters.getSceneMode());
         Log.i(TAG,"Focus mode: " + parameters.getFocusMode());
@@ -151,7 +148,7 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
     @Override
     public void onPreviewFrame(byte[] data,Camera camera) {
         if (!previewFramesPipe.offer(data)) {
-            Log.d(TAG,"Preview frame was skipped");
+            //Log.d(TAG,"Preview frame was skipped");
         }
     }
 
@@ -160,15 +157,26 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
         while (!Thread.currentThread().isInterrupted()) {
             try {
                 byte[] previewFrame= previewFramesPipe.take();
-                Log.d(TAG,"received preview frame: length = " + previewFrame.length);
+                //Log.d(TAG,"received preview frame: length = " + previewFrame.length);
                 if (previewSize.width % 16 == 0 && previewSize.height % 16 == 0) {
-                    int[] planeYdata= new int[previewSize.width*previewSize.height]; 
-                    for (int i=0; i < planeYdata.length; i++) {
-                        planeYdata[i]= previewFrame[i];
+                    int[] planeYData= new int[previewSize.width*previewSize.height]; 
+                    int maxY= 0;
+                    int minY= 255;
+                    for (int i=0; i < planeYData.length; i++) {
+                        int value= previewFrame[i];
+                        int color= value < 0 ? 256 + value : value;
+                        if (color > maxY) maxY= color;
+                        if (color < minY) minY= color;
+
+                        planeYData[i]= Color.rgb(color,color,color);
                     }
-                    Bitmap planeY= Bitmap.createBitmap(planeYdata,previewSize.width,previewSize.height,Bitmap.Config.RGB_565);
+                    Log.i(TAG,"Luma values range in the preview frame: " + minY + " - " + maxY);
+                    Bitmap planeY= Bitmap.createBitmap(planeYData,previewSize.width,previewSize.height,Bitmap.Config.ARGB_8888);
+
+
                     Canvas canvas= mainSurfaceHolder.lockCanvas();
-                    canvas.drawBitmap(planeY,0f,0f,new Paint());
+                    canvas.scale(1.3f,1.3f);
+                    canvas.drawBitmap(planeY,0f,80f,new Paint());
                     if (canvas != null) {
                         mainSurfaceHolder.unlockCanvasAndPost(canvas);
                     }
