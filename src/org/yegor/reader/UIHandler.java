@@ -14,6 +14,7 @@ import android.view.SurfaceHolder;
 import android.os.Bundle;
 import android.util.Log;
 
+import org.yegor.reader.Image;
 import org.yegor.reader.PreviewProcessor;
 import org.yegor.reader.opencv.Loader;
 import org.yegor.reader.hardware.camera.Utility;
@@ -71,6 +72,8 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
         camera.setParameters(parameters);
         Log.i(TAG,"Scene mode: " + parameters.getSceneMode());
         Log.i(TAG,"Focus mode: " + parameters.getFocusMode());
+        Camera.Size previewSize= parameters.getPreviewSize();
+        Log.i(TAG,"Camera preview size: " + previewSize.width + "x" + previewSize.height);
     }
 
     private void releaseCamera() {
@@ -136,11 +139,13 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
         Log.i(TAG,"onDestroy()");
     }
 
-    private SynchronousQueue<byte[]> previewFramesPipe= new SynchronousQueue<byte[]>();
+    private SynchronousQueue<Image> previewFramesPipe= new SynchronousQueue<Image>();
 
     @Override
     public void onPreviewFrame(byte[] data,Camera camera) {
-        if (!previewFramesPipe.offer(data)) {
+        Camera.Size previewSize= camera.getParameters().getPreviewSize();
+        Image image= new Image(data,previewSize.width,previewSize.height);
+        if (!previewFramesPipe.offer(image)) {
             Log.d(TAG,"Preview frame was skipped");
         }
     }
@@ -160,11 +165,8 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
 */
         camera.setPreviewCallback(this);
         camera.startPreview();
-        Camera.Parameters parameters= camera.getParameters();
-        Camera.Size previewSize= parameters.getPreviewSize();
-        Log.i(TAG,"Camera preview size: " + previewSize.width + "x" + previewSize.height);
 
-        PreviewProcessor previewProcessor= new PreviewProcessor(mainSurfaceHolder,previewSize,previewFramesPipe);
+        PreviewProcessor previewProcessor= new PreviewProcessor(mainSurfaceHolder,previewFramesPipe);
         previewProcessorThread= new Thread(previewProcessor);
         previewProcessorThread.start();
 
