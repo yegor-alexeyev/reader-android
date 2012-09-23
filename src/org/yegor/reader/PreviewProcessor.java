@@ -33,7 +33,11 @@ public class PreviewProcessor implements Runnable {
         while (!Thread.currentThread().isInterrupted()) {
             try {
                 Image frame= sourceOfPreviewFrames.take();
-                //Log.i(TAG,"JNI test: " + processFrame(frame.data, frame.width,frame.height));
+                int counter= processFrame(frame.data, frame.width,frame.height);
+                boolean is_image_sharp= counter > 100;
+                if (is_image_sharp) {
+                    Log.i(TAG,"sharp frame");
+                } 
                 //Log.i(TAG,"counters: " + counters[0] + ", " + counters[1] + ", " + counters[2]);
             } catch (InterruptedException exception) {
                 return;
