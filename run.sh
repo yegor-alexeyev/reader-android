@@ -36,17 +36,17 @@ then
   echo Error: device is not connected to the Android Debug Bridge
 fi
 
-ant nodeps release || exit 1
+ant nodeps $1 || exit 1
 echo -n 'Uninstalling existing package version: '; adb uninstall $PACKAGE
 echo 'Installing package: '; adb -d install -r bin/$PROJECT-$1.apk
 
 if test "$1" = debug
 then
-  DEBUG_FLAGS='-W -D'
+  DEBUG_FLAGS='-D'
 else
   DEBUG_FLAGS=''
 fi
-echo 'Starting package activity: '; adb -d shell "am start "$DEBUG_FLAGS" -n $PACKAGE/$PACKAGE.$ACTIVITY"
+echo 'Starting package activity: '; adb -d shell "am start $DEBUG_FLAGS -W -n $PACKAGE/$PACKAGE.$ACTIVITY"
 if test "$1" = debug
 then
   while true
