@@ -22,6 +22,7 @@ class PreviewProcessor implements Runnable {
 
     public PreviewProcessor(SurfaceHolder surfaceHolder, Camera.Size previewSize, SynchronousQueue<byte[]> sourceOfPreviewFrames) {
         this.surfaceHolder= surfaceHolder;
+        this.previewSize= previewSize;
         this.sourceOfPreviewFrames= sourceOfPreviewFrames;
     }
 
