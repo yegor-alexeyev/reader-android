@@ -1,5 +1,6 @@
 package org.yegor.reader;
 
+import java.util.Arrays;
 import java.util.concurrent.SynchronousQueue;
 
 import android.util.Log;
@@ -27,14 +28,19 @@ class PreviewProcessor implements Runnable {
     private void processPreviewFrames() {
         while (!Thread.currentThread().isInterrupted()) {
             try {
-                Image previewFrame= sourceOfPreviewFrames.take();
-/*
-                for (int y=0; y < previewFrame.height; y+=8) {
-                    for (int x=0; x < previewFrame.width; x++) {
-                        previewFrame.data[y*previewFrame.width+x]=-1;
+                Image frame= sourceOfPreviewFrames.take();
+
+                int counters[] = new int[256];
+                for (int y=frame.height/8; y < 7*frame.height/8; y++) {
+                    for (int x=frame.width/8; x < 7*frame.width/8; x++) {
+                        int color= frame.getColor(x,y);
+                        int neighbourColor= frame.getColor(x+1,y);
+                        int difference= Math.abs(color - neighbourColor);
+                        counters[difference]++; 
                     }
                 }
- */               
+
+                Log.i(TAG,"counters: " + counters[0] + ", " + counters[1] + ", " + counters[2]);
             } catch (InterruptedException exception) {
                 return;
             }
