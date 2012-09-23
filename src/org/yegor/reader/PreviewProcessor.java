@@ -14,11 +14,15 @@ import android.view.SurfaceHolder;
 
 import org.yegor.reader.Image;
 
-class PreviewProcessor implements Runnable {
+public class PreviewProcessor implements Runnable {
     private static final String TAG= "reader_PreviewProcessor";
 
     private SurfaceHolder surfaceHolder;
     private SynchronousQueue<Image> sourceOfPreviewFrames;
+
+    static {
+        System.loadLibrary("preview-processor");
+    }
 
     public PreviewProcessor(SurfaceHolder surfaceHolder, SynchronousQueue<Image> sourceOfPreviewFrames) {
         this.surfaceHolder= surfaceHolder;
@@ -29,6 +33,7 @@ class PreviewProcessor implements Runnable {
         while (!Thread.currentThread().isInterrupted()) {
             try {
                 Image frame= sourceOfPreviewFrames.take();
+                Log.i(TAG,"JNI test: " + processFrame(frame.data, frame.width,frame.height));
 
                 int counters[] = new int[256];
                 for (int y=frame.height/8; y < 7*frame.height/8; y++) {
@@ -59,4 +64,6 @@ class PreviewProcessor implements Runnable {
             }
         }
     }
+
+    public static native int processFrame(byte[] data, int width, int height);
 }
