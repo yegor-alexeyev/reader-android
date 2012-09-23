@@ -1,2 +1,3 @@
 #!/usr/bin/env bash
-./run.sh debug
+cd `dirname $0` 
+run.sh debug

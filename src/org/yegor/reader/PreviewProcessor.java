@@ -28,36 +28,13 @@ class PreviewProcessor implements Runnable {
         while (!Thread.currentThread().isInterrupted()) {
             try {
                 Image previewFrame= sourceOfPreviewFrames.take();
+/*
                 for (int y=0; y < previewFrame.height; y+=8) {
                     for (int x=0; x < previewFrame.width; x++) {
                         previewFrame.data[y*previewFrame.width+x]=-1;
                     }
                 }
-                int[] planeYData= new int[previewFrame.width*previewFrame.height]; 
-                int maxY= 0;
-                int minY= 255;
-                for (int i=0; i < planeYData.length; i++) {
-                    int value= previewFrame.data[i];
-                    int color= value < 0 ? 256 + value : value;
-                    if (color > maxY) maxY= color;
-                    if (color < minY) minY= color;
-
-                    planeYData[i]= Color.rgb(color,color,color);
-                }
-                Log.i(TAG,"Luma values range in the preview frame: " + minY + " - " + maxY);
-                Bitmap planeY= Bitmap.createBitmap(planeYData,previewFrame.width,previewFrame.height,Bitmap.Config.ARGB_8888);
-
-
-                Canvas canvas= surfaceHolder.lockCanvas();
-                if (canvas != null) {
-//                        canvas.scale(1.3f,1.3f);
-                    canvas.rotate(90f, 240,320);
-                    canvas.drawBitmap(planeY,40f,80f,new Paint());
-                    if (canvas != null) {
-                        surfaceHolder.unlockCanvasAndPost(canvas);
-                    }
-                }
-                
+ */               
             } catch (InterruptedException exception) {
                 return;
             }
