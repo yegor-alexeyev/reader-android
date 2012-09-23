@@ -34,17 +34,6 @@ public class PreviewProcessor implements Runnable {
             try {
                 Image frame= sourceOfPreviewFrames.take();
                 //Log.i(TAG,"JNI test: " + processFrame(frame.data, frame.width,frame.height));
-
-                int counters[] = new int[256];
-                for (int y=frame.height/8; y < 7*frame.height/8; y++) {
-                    for (int x=frame.width/8; x < 7*frame.width/8; x++) {
-                        int color= frame.getColor(x,y);
-                        int neighbourColor= frame.getColor(x+1,y);
-                        int difference= Math.abs(color - neighbourColor);
-                        counters[difference]++; 
-                    }
-                }
-
                 //Log.i(TAG,"counters: " + counters[0] + ", " + counters[1] + ", " + counters[2]);
             } catch (InterruptedException exception) {
                 return;
