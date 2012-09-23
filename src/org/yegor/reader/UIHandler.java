@@ -6,11 +6,6 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.SynchronousQueue;
 
-import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.ImageFormat;
-import android.graphics.Paint;
 import android.hardware.Camera;
 import android.app.AlertDialog;
 import android.app.Activity;
@@ -19,20 +14,20 @@ import android.view.SurfaceHolder;
 import android.os.Bundle;
 import android.util.Log;
 
+import org.yegor.reader.PreviewProcessor;
 import org.yegor.reader.opencv.Loader;
 import org.yegor.reader.hardware.camera.Utility;
 
 
-public class UIHandler extends Activity implements Loader.ResultListener, SurfaceHolder.Callback2, Camera.PreviewCallback,Runnable
+public class UIHandler extends Activity implements Loader.ResultListener, SurfaceHolder.Callback2, Camera.PreviewCallback
 {
     private static final String TAG = "reader_UIHandler";
 
     private final CountDownLatch initializationLatch= new CountDownLatch(1);
 
     private Camera camera;
-    private Camera.Size previewSize;
 
-    private Thread previewProcessor;
+    private Thread previewProcessorThread;
 
     public UIHandler() {
       Log.i(TAG,"UIHandler()");
@@ -65,8 +60,6 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
         int previewRotationAngle= 360 - Utility.getCameraOrientationAngle(cameraId);
         camera.setDisplayOrientation(previewRotationAngle);
         Camera.Parameters parameters= camera.getParameters();
-        previewSize= parameters.getPreviewSize();
-        Log.i(TAG,"Camera preview size: " + previewSize.width + "x" + previewSize.height);
         if (parameters.getSupportedFocusModes().contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)) {
             parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
         }
@@ -128,7 +121,7 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
         super.onPause();
         Log.i(TAG,"onPause()");
         releaseCamera();
-        previewProcessor.interrupt();
+        Log.i(TAG,"onPause() exits");
     }
 
     @Override
@@ -148,47 +141,7 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
     @Override
     public void onPreviewFrame(byte[] data,Camera camera) {
         if (!previewFramesPipe.offer(data)) {
-            //Log.d(TAG,"Preview frame was skipped");
-        }
-    }
-
-    @Override
-    public void run() {
-        while (!Thread.currentThread().isInterrupted()) {
-            try {
-                byte[] previewFrame= previewFramesPipe.take();
-                //Log.d(TAG,"received preview frame: length = " + previewFrame.length);
-                if (previewSize.width % 16 == 0 && previewSize.height % 16 == 0) {
-                    int[] planeYData= new int[previewSize.width*previewSize.height]; 
-                    int maxY= 0;
-                    int minY= 255;
-                    for (int i=0; i < planeYData.length; i++) {
-                        int value= previewFrame[i];
-                        int color= value < 0 ? 256 + value : value;
-                        if (color > maxY) maxY= color;
-                        if (color < minY) minY= color;
-
-                        planeYData[i]= Color.rgb(color,color,color);
-                    }
-                    Log.i(TAG,"Luma values range in the preview frame: " + minY + " - " + maxY);
-                    Bitmap planeY= Bitmap.createBitmap(planeYData,previewSize.width,previewSize.height,Bitmap.Config.ARGB_8888);
-
-
-                    Canvas canvas= mainSurfaceHolder.lockCanvas();
-                    if (canvas != null) {
-                        canvas.scale(1.3f,1.3f);
-                        canvas.drawBitmap(planeY,0f,80f,new Paint());
-                        if (canvas != null) {
-                            mainSurfaceHolder.unlockCanvasAndPost(canvas);
-                        }
-                    }
-                } else {
-                    Log.e(TAG,"Unsupported preview frame size");
-                }
-                
-            } catch (InterruptedException exception) {
-                return;
-            }
+            Log.d(TAG,"Preview frame was skipped");
         }
     }
 
@@ -207,8 +160,13 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
 */
         camera.setPreviewCallback(this);
         camera.startPreview();
-        previewProcessor= new Thread(this);
-        previewProcessor.start();
+        Camera.Parameters parameters= camera.getParameters();
+        Camera.Size previewSize= parameters.getPreviewSize();
+        Log.i(TAG,"Camera preview size: " + previewSize.width + "x" + previewSize.height);
+
+        PreviewProcessor previewProcessor= new PreviewProcessor(mainSurfaceHolder,previewSize,previewFramesPipe);
+        previewProcessorThread= new Thread(previewProcessor);
+        previewProcessorThread.start();
 
         Log.i(TAG,"surfaceCreated("+holder+")");
     }
@@ -221,6 +179,7 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
     @Override
     public void surfaceDestroyed(SurfaceHolder holder) {
         Log.i(TAG,"surfaceDestroyed()");
+        previewProcessorThread.interrupt();
     } 
 
     @Override
