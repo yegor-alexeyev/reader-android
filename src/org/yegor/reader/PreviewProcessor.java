@@ -33,7 +33,7 @@ public class PreviewProcessor implements Runnable {
         while (!Thread.currentThread().isInterrupted()) {
             try {
                 Image frame= sourceOfPreviewFrames.take();
-                Log.i(TAG,"JNI test: " + processFrame(frame.data, frame.width,frame.height));
+                //Log.i(TAG,"JNI test: " + processFrame(frame.data, frame.width,frame.height));
 
                 int counters[] = new int[256];
                 for (int y=frame.height/8; y < 7*frame.height/8; y++) {
@@ -45,7 +45,7 @@ public class PreviewProcessor implements Runnable {
                     }
                 }
 
-                Log.i(TAG,"counters: " + counters[0] + ", " + counters[1] + ", " + counters[2]);
+                //Log.i(TAG,"counters: " + counters[0] + ", " + counters[1] + ", " + counters[2]);
             } catch (InterruptedException exception) {
                 return;
             }
