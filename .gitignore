@@ -1,6 +1,6 @@
 /bin/
-/cscope.out
 /gen/
 /obj/
 /libs/
+cscope.out
 *.swp
