@@ -12,6 +12,8 @@ import android.graphics.Paint;
 
 import android.view.SurfaceHolder;
 
+import android.hardware.Camera;
+
 import org.yegor.reader.Image;
 
 public class PreviewProcessor implements Runnable {
@@ -19,14 +21,16 @@ public class PreviewProcessor implements Runnable {
 
     private SurfaceHolder surfaceHolder;
     private SynchronousQueue<Image> sourceOfPreviewFrames;
+    private Camera camera;
 
     static {
         System.loadLibrary("preview-processor");
     }
 
-    public PreviewProcessor(SurfaceHolder surfaceHolder, SynchronousQueue<Image> sourceOfPreviewFrames) {
+    public PreviewProcessor(Camera camera, SurfaceHolder surfaceHolder, SynchronousQueue<Image> sourceOfPreviewFrames) {
         this.surfaceHolder= surfaceHolder;
         this.sourceOfPreviewFrames= sourceOfPreviewFrames;
+        this.camera= camera;
     }
 
     private void processPreviewFrames() {
@@ -45,6 +49,7 @@ public class PreviewProcessor implements Runnable {
                     intData[i]= intData[i] + intData[i]*256 + intData[i]*256*256;
                     intData[i]|= 0xFF000000;
                 }
+                camera.addCallbackBuffer(frame.data);
                 Bitmap bitmapData= Bitmap.createBitmap(intData, frame.width, frame.height, Bitmap.Config.ARGB_8888);
                 Canvas canvas= surfaceHolder.lockCanvas();
                 if (canvas!=null) {

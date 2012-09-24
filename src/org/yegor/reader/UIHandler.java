@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.SynchronousQueue;
 
+import android.graphics.ImageFormat;
 import android.hardware.Camera;
 import android.app.AlertDialog;
 import android.app.Activity;
@@ -146,6 +147,7 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
         Camera.Size previewSize= camera.getParameters().getPreviewSize();
         Image image= new Image(data,previewSize.width,previewSize.height);
         if (!previewFramesPipe.offer(image)) {
+            camera.addCallbackBuffer(data);
             Log.d(TAG,"Preview frame was skipped");
         }
     }
@@ -163,10 +165,19 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
             throw new RuntimeException(exception);
         }
 */
-        camera.setPreviewCallback(this);
+        camera.setPreviewCallbackWithBuffer(this);
+        Camera.Size previewSize= camera.getParameters().getPreviewSize();
+        int bufferSize= previewSize.width*previewSize.height*ImageFormat.getBitsPerPixel(ImageFormat.NV21)/8;
+
+        camera.addCallbackBuffer(new byte[bufferSize]);
+        camera.addCallbackBuffer(new byte[bufferSize]);
+        camera.addCallbackBuffer(new byte[bufferSize]);
+        camera.addCallbackBuffer(new byte[bufferSize]);
+        camera.addCallbackBuffer(new byte[bufferSize]);
+        camera.addCallbackBuffer(new byte[bufferSize]);
         camera.startPreview();
 
-        PreviewProcessor previewProcessor= new PreviewProcessor(mainSurfaceHolder,previewFramesPipe);
+        PreviewProcessor previewProcessor= new PreviewProcessor(camera,mainSurfaceHolder,previewFramesPipe);
         previewProcessorThread= new Thread(previewProcessor);
         previewProcessorThread.start();
 
