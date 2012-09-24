@@ -155,14 +155,14 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
         mainSurfaceHolder= holder;
-
+/*
         try {
             camera.setPreviewDisplay(holder);
         } catch (IOException exception) {
             Log.e(TAG,"Error executing Camera::setPreviewDisplay("+holder+")");
             throw new RuntimeException(exception);
         }
-
+*/
         camera.setPreviewCallback(this);
         camera.startPreview();
 

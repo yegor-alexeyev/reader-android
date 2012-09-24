@@ -38,6 +38,21 @@ public class PreviewProcessor implements Runnable {
                 if (is_image_sharp) {
                     Log.i(TAG,"sharp frame");
                 } 
+                int intData[]= new int[frame.width*frame.height];
+                
+                for (int i= 0; i < frame.width*frame.height; i++) {
+                    intData[i]= frame.data[i] < 0 ? 256 + frame.data[i] : frame.data[i];
+                    intData[i]|= 0xFF000000;
+                }
+                Bitmap bitmapData= Bitmap.createBitmap(intData, frame.width, frame.height, Bitmap.Config.ARGB_8888);
+                Canvas canvas= surfaceHolder.lockCanvas();
+                if (canvas!=null) {
+                    canvas.rotate(90);
+                    canvas.drawBitmap(bitmapData,0f,-frame.height, new Paint());
+                    surfaceHolder.unlockCanvasAndPost(canvas);
+                }
+                    
+                    
                 //Log.i(TAG,"counters: " + counters[0] + ", " + counters[1] + ", " + counters[2]);
             } catch (InterruptedException exception) {
                 return;

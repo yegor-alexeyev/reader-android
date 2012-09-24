@@ -36,6 +36,7 @@ then
   echo Error: device is not connected to the Android Debug Bridge
 fi
 
+/opt/android.com/android-ndk-r8b/ndk-build clean || exit 1
 /opt/android.com/android-ndk-r8b/ndk-build || exit 1
 ant nodeps $1 || exit 1
 echo -n 'Uninstalling existing package version: '; adb uninstall $PACKAGE
