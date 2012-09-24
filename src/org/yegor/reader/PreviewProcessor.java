@@ -42,6 +42,7 @@ public class PreviewProcessor implements Runnable {
                 
                 for (int i= 0; i < frame.width*frame.height; i++) {
                     intData[i]= frame.data[i] < 0 ? 256 + frame.data[i] : frame.data[i];
+                    intData[i]= intData[i] + intData[i]*256 + intData[i]*256*256;
                     intData[i]|= 0xFF000000;
                 }
                 Bitmap bitmapData= Bitmap.createBitmap(intData, frame.width, frame.height, Bitmap.Config.ARGB_8888);
