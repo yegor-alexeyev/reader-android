@@ -10,6 +10,8 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/features2d/features2d.hpp>
 
+#include "highlight_letters.h"
+
 inline uint8_t get_color_value(jbyte* data,size_t x,size_t y, jint width) {
   jbyte jvalue= data[y*width+x];
   return jvalue < 0 ? jvalue + 256 : jvalue;
@@ -69,7 +71,7 @@ Java_org_yegor_reader_PreviewProcessor_processFrame( JNIEnv* env,jobject thiz, j
   }
 
   cv::Mat lumaPlane(height,width,CV_8UC1,(unsigned char*) yuv);
-  cv::Canny(lumaPlane,lumaPlane,20,60,3);
+  highlight_letters(lumaPlane,lumaPlane,20,60,3);
   
 /*
   int counter = 0;
