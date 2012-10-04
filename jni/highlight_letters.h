@@ -14,13 +14,6 @@ void highlight_letters( cv::InputArray _src, cv::OutputArray _dst,
     _dst.create(src.size(), CV_8U);
     cv::Mat dst = _dst.getMat();
 
-    if (!L2gradient && (aperture_size & CV_CANNY_L2_GRADIENT) == CV_CANNY_L2_GRADIENT)
-    {
-        //backward compatibility
-        aperture_size &= ~CV_CANNY_L2_GRADIENT;
-        L2gradient = true;
-    }
-
     if ((aperture_size & 1) == 0 || (aperture_size != -1 && (aperture_size < 3 || aperture_size > 7)))
         CV_Error(CV_StsBadFlag, "");
 
