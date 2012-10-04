@@ -170,11 +170,11 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
         int bufferSize= previewSize.width*previewSize.height*ImageFormat.getBitsPerPixel(ImageFormat.NV21)/8;
 
         camera.addCallbackBuffer(new byte[bufferSize]);
-        //camera.addCallbackBuffer(new byte[bufferSize]);
-        //camera.addCallbackBuffer(new byte[bufferSize]);
-        //camera.addCallbackBuffer(new byte[bufferSize]);
-        //camera.addCallbackBuffer(new byte[bufferSize]);
-        //camera.addCallbackBuffer(new byte[bufferSize]);
+        camera.addCallbackBuffer(new byte[bufferSize]);
+        camera.addCallbackBuffer(new byte[bufferSize]);
+        camera.addCallbackBuffer(new byte[bufferSize]);
+        camera.addCallbackBuffer(new byte[bufferSize]);
+        camera.addCallbackBuffer(new byte[bufferSize]);
         camera.startPreview();
 
         PreviewProcessor previewProcessor= new PreviewProcessor(camera,mainSurfaceHolder,previewFramesPipe);
