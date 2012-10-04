@@ -4,6 +4,9 @@
 #include <unistd.h>
 #include <cstdlib>
 
+#define _GLIBCXX_PERMIT_BACKWARD_HASH
+#include <ext/hash_map>
+
 #include <android/log.h>
 
 #include <opencv2/core/core.hpp>
@@ -110,6 +113,17 @@ static int merge_count= 0;
 static int add_count= 0;
 static int recursive_count= 0;
 
+class group_range_hasher {
+public:
+
+    size_t operator ()(uint32_t value) const {
+        return value;
+    }
+};
+
+typedef __gnu_cxx::hash_multimap<uint32_t,uint32_t,group_range_hasher> groups_map;
+typedef std::pair<groups_map::iterator,groups_map::iterator> group_range;
+
 class ManagerOfGroups {
     public:
         ManagerOfGroups(size_t width, size_t height) :
@@ -134,19 +148,30 @@ class ManagerOfGroups {
             groupCounter++;
             at(pixel)= groupCounter;
             create_count++;
+            groupsContent.insert(groups_map::value_type(groupCounter,pixel.y*width+pixel.x));
         }
 
         void addToGroup(uint32_t groupNumber, Pixel pixel) {
             at(pixel)= groupNumber;
             add_count++;
+            groupsContent.insert(groups_map::value_type(groupNumber,pixel.y*width+pixel.x));
         }
 
         void mergeGroups(Pixel pixel1, Pixel pixel2) {
 
             Pixel pixelOfGroupToErase=  at(pixel1) > at(pixel2) ? pixel1 : pixel2;
             Pixel pixelOfGroupToExpand= at(pixel1) > at(pixel2) ? pixel2 : pixel1;
+            uint32_t numberOfExpandingGroup= at(pixelOfGroupToExpand);
 
-            recursivelyMergeGroup(at(pixelOfGroupToErase),at(pixelOfGroupToExpand),pixelOfGroupToErase);
+            group_range range= groupsContent.equal_range(at(pixelOfGroupToErase));
+            for (groups_map::const_iterator item= range.first; item != range.second; item++) {
+                
+                groups_map::value_type newValue(numberOfExpandingGroup,item->second);
+                groupsContent.insert(newValue);
+                board[item->second]= numberOfExpandingGroup;
+            }
+            groupsContent.erase(range.first,range.second);
+//            recursivelyMergeGroup(at(pixelOfGroupToErase),at(pixelOfGroupToExpand),pixelOfGroupToErase);
 
             merge_count++;
         }
@@ -187,6 +212,7 @@ class ManagerOfGroups {
         std::vector<uint32_t> board;
 
         uint32_t groupCounter;
+        groups_map groupsContent;
 };
 
 
