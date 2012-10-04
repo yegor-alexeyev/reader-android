@@ -33,6 +33,27 @@ class BitmapBase {
         const size_t height;
 };
 
+uint8_t get_color(jbyte value) {
+    return value < 0 ? value + 256 : value;
+}
+
+jbyte get_jbyte_value(uint8_t color) {
+    return color > 127 ? color - 256 : color;
+}
+
+inline void set_color_value(jbyte* data,size_t x,size_t y, size_t width, uint8_t color) {
+    
+    jbyte value;
+    if (color > 127) {
+        value= color - 256;
+    } else {
+        value= color;
+    }
+   
+  //data[y*width+x]= color > 127 ? color - 256 : color;
+  //LOG("color = %d",color);
+  data[y*width+x]= value;
+} 
 
 class Pixel {
     friend class Bitmap;
@@ -47,9 +68,12 @@ private:
 
 public:
     uint8_t color() const {
-        return bitmap.data[bitmap.width*y+x];
+        return get_color(bitmap.data[bitmap.width*y+x]);
     }
 
+    void setColor(uint8_t color) {
+        set_color_value(bitmap.data,x,y,bitmap.width,color);
+    }
     const size_t x;
     const size_t y;
 
@@ -126,6 +150,9 @@ class ManagerOfGroups {
 
             merge_count++;
         }
+        uint32_t getLastGroupNumber() const {
+            return groupCounter;
+        }
 
     private:
         void recursivelyMergeGroup(uint32_t eraseNumber, uint32_t expandNumber, Pixel position) {
@@ -148,11 +175,11 @@ class ManagerOfGroups {
         }
 
         const uint32_t& at(Pixel pixel) const {
-            return board[pixel.y*width+pixel.x];
+            return board.at(pixel.y*width+pixel.x);
         }
 
         uint32_t& at(Pixel pixel) {
-            return board[pixel.y*width+pixel.x];
+            return board.at(pixel.y*width+pixel.x);
         }
 
         size_t width;  
@@ -168,7 +195,7 @@ class ManagerOfGroups {
 
 void processNeighbor(ManagerOfGroups& manager, Pixel pixel, Pixel neighbor) {
     if (!manager.isInGroup(neighbor) || manager.getGroupNumber(neighbor) != manager.getGroupNumber(pixel)) {
-        if (abs(pixel.color()  - neighbor.color()) < 50) {
+        if (abs(pixel.color()  - neighbor.color()) < 25) {
             if (manager.isInGroup(neighbor)) {
                 manager.mergeGroups(pixel, neighbor);
             } else {
@@ -179,8 +206,7 @@ void processNeighbor(ManagerOfGroups& manager, Pixel pixel, Pixel neighbor) {
     }
 }
 
-void groupPixels(Bitmap bitmap) {
-    ManagerOfGroups manager(bitmap.width,bitmap.height);
+void groupPixels(ManagerOfGroups& manager, Bitmap bitmap) {
     for (size_t x= 0; x < bitmap.width; x++) {
         for (size_t y= 0; y < bitmap.height; y++) {
             Pixel pixel= bitmap.pixel(x,y);
@@ -244,13 +270,6 @@ void findMarks(jbyte* data, Count width,Count height) {
   }
 }
 
-int get_color(jbyte value) {
-    return value < 0 ? value + 256 : value;
-}
-
-jbyte get_jbyte_value(int color) {
-    return color > 127 ? color - 256 : color;
-}
 
 extern "C" {
 ///////////////////////////////////////////////////////////
@@ -269,7 +288,21 @@ Java_org_yegor_reader_PreviewProcessor_processFrame( JNIEnv* env,jobject thiz, j
     add_count= 0;
     recursive_count= 0;
 
-    groupPixels(Bitmap(yuv, width,height));
+    Bitmap bitmap(yuv, width,height);
+    ManagerOfGroups manager(bitmap.width,bitmap.height);
+    groupPixels(manager, bitmap);
+
+    for (size_t y= 0; y< height; y++) {
+        for (size_t x= 0; x < width; x++) {
+            Pixel pixel= bitmap.pixel(x,y);
+            uint32_t number = manager.isInGroup(pixel) ? manager.getGroupNumber(pixel) : 0;
+            uint8_t color= number*255/manager.getLastGroupNumber();
+            
+            //LOG("x y = %d %d",y,x);
+//            yuv[y*width+x]= 0;
+            pixel.setColor(color);
+        }
+    }
 
     LOG("create count = %d",create_count);
     LOG("merge_count = %d",merge_count);
