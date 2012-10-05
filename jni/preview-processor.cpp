@@ -32,8 +32,8 @@ class BitmapBase {
     private:
         jbyte* data;
     public:
-        const size_t width;
-        const size_t height;
+        size_t width;
+        size_t height;
 };
 
 uint8_t get_color(jbyte value) {
@@ -67,7 +67,7 @@ private:
         y(y) {
     }
 
-    const BitmapBase bitmap;
+     BitmapBase bitmap;
 
 public:
     uint8_t color() const {
@@ -77,8 +77,8 @@ public:
     void setColor(uint8_t color) {
         set_color_value(bitmap.data,x,y,bitmap.width,color);
     }
-    const size_t x;
-    const size_t y;
+    size_t x;
+    size_t y;
 
     Pixel highNeighbor() {
         return Pixel(bitmap,x,y-1);       
@@ -121,9 +121,6 @@ public:
     }
 };
 
-typedef __gnu_cxx::hash_multimap<uint32_t,uint32_t,group_range_hasher> groups_map;
-typedef std::pair<groups_map::iterator,groups_map::iterator> group_range;
-
 class ManagerOfGroups {
     public:
         ManagerOfGroups(size_t width, size_t height) :
@@ -148,31 +145,44 @@ class ManagerOfGroups {
             groupCounter++;
             at(pixel)= groupCounter;
             create_count++;
-            groupsContent.insert(groups_map::value_type(groupCounter,pixel.y*width+pixel.x));
         }
 
         void addToGroup(uint32_t groupNumber, Pixel pixel) {
             at(pixel)= groupNumber;
             add_count++;
-            groupsContent.insert(groups_map::value_type(groupNumber,pixel.y*width+pixel.x));
         }
 
         void mergeGroups(Pixel pixel1, Pixel pixel2) {
 
-            Pixel pixelOfGroupToErase=  at(pixel1) > at(pixel2) ? pixel1 : pixel2;
+            Pixel eraseGroupPixel=  at(pixel1) > at(pixel2) ? pixel1 : pixel2;
             Pixel pixelOfGroupToExpand= at(pixel1) > at(pixel2) ? pixel2 : pixel1;
-            uint32_t numberOfExpandingGroup= at(pixelOfGroupToExpand);
 
-            group_range range= groupsContent.equal_range(at(pixelOfGroupToErase));
-            for (groups_map::const_iterator item= range.first; item != range.second; item++) {
+            uint32_t eraseNumber= at(eraseGroupPixel); 
+            uint32_t expandNumber= at(pixelOfGroupToExpand); 
+
+            std::vector<Pixel> toDoStack;
+
+            toDoStack.push_back(eraseGroupPixel);
+            while (!toDoStack.empty()) {
+                Pixel pixel= toDoStack.back();
+                toDoStack.pop_back();
                 
-                groups_map::value_type newValue(numberOfExpandingGroup,item->second);
-                groupsContent.insert(newValue);
-                board[item->second]= numberOfExpandingGroup;
+                if (isInGroup(pixel) && at(pixel) == eraseNumber) {
+                    at(pixel)= expandNumber;
+                    if (pixel.y != 0) {
+                        toDoStack.push_back(pixel.highNeighbor());
+                    }
+                    if (pixel.x != width - 1) {
+                        toDoStack.push_back(pixel.rightNeighbor());
+                    }
+                    if (pixel.y != height - 1) {
+                        toDoStack.push_back(pixel.lowNeighbor());
+                    }
+                    if (pixel.x != 0) {
+                        toDoStack.push_back(pixel.leftNeighbor());
+                    }
+                }
             }
-            groupsContent.erase(range.first,range.second);
-//            recursivelyMergeGroup(at(pixelOfGroupToErase),at(pixelOfGroupToExpand),pixelOfGroupToErase);
-
             merge_count++;
         }
         uint32_t getLastGroupNumber() const {
@@ -180,24 +190,6 @@ class ManagerOfGroups {
         }
 
     private:
-        void recursivelyMergeGroup(uint32_t eraseNumber, uint32_t expandNumber, Pixel position) {
-            recursive_count++;
-            if (isInGroup(position) && at(position) == eraseNumber) {
-                at(position)= expandNumber;
-                if (position.y != 0) {
-                    recursivelyMergeGroup(eraseNumber, expandNumber, position.highNeighbor());
-                }
-                if (position.x != width) {
-                    recursivelyMergeGroup(eraseNumber, expandNumber, position.rightNeighbor());
-                }
-                if (position.y != height) {
-                    recursivelyMergeGroup(eraseNumber, expandNumber, position.lowNeighbor());
-                }
-                if (position.x != 0) {
-                    recursivelyMergeGroup(eraseNumber, expandNumber, position.leftNeighbor());
-                }
-            }
-        }
 
         const uint32_t& at(Pixel pixel) const {
             return board.at(pixel.y*width+pixel.x);
@@ -212,7 +204,6 @@ class ManagerOfGroups {
         std::vector<uint32_t> board;
 
         uint32_t groupCounter;
-        groups_map groupsContent;
 };
 
 
@@ -221,7 +212,7 @@ class ManagerOfGroups {
 
 void processNeighbor(ManagerOfGroups& manager, Pixel pixel, Pixel neighbor) {
     if (!manager.isInGroup(neighbor) || manager.getGroupNumber(neighbor) != manager.getGroupNumber(pixel)) {
-        if (abs(pixel.color()  - neighbor.color()) < 25) {
+        if (abs(pixel.color()  - neighbor.color()) < 10) {
             if (manager.isInGroup(neighbor)) {
                 manager.mergeGroups(pixel, neighbor);
             } else {
