@@ -5,6 +5,7 @@
 #include <cstdlib>
 
 #include <map>
+#include <set>
 #include <vector>
 
 #include <android/log.h>
@@ -22,6 +23,10 @@ class BitmapBase {
             height(height) {
         } 
 
+
+        bool operator <(const BitmapBase& rightArgument) const {
+           return data < rightArgument.data || height < rightArgument.height || width < rightArgument.width;
+        } 
 
     private:
         jbyte* data;
@@ -64,6 +69,11 @@ private:
      BitmapBase bitmap;
 
 public:
+
+    bool operator < (const Pixel& rightArgument) const {
+        return bitmap < rightArgument.bitmap || y < rightArgument.y || x < rightArgument.x; 
+    }
+
     uint8_t color() const {
         return get_color(bitmap.data[bitmap.width*y+x]);
     }
@@ -121,8 +131,10 @@ class ManagerOfGroups {
            width(width),
            height(height),
            board(width*height,0),
-           groupCounter(0),
-           pixelCounters(1,0)  {
+           groupCounter(0)
+//,
+           //pixelCounters(1,0)  
+        {
         }
 
         uint32_t getGroupNumber(Pixel pixel) const {
@@ -138,14 +150,16 @@ class ManagerOfGroups {
 
         void createGroup(Pixel pixel) {
             groupCounter++;
-            at(pixel)= groupCounter;
-            pixelCounters.push_back(1);
+            //LOG("x = %d, y = %d",pixel.x,pixel.y);
+            //at(pixel)= groupCounter;
+            at(pixel)= pixel.y*width+pixel.x+1;
+            //pixelCounters.push_back(1);
             create_count++;
         }
 
         void addToGroup(uint32_t groupNumber, Pixel pixel) {
             at(pixel)= groupNumber;
-            pixelCounters.at(groupNumber)++;
+            //pixelCounters.at(groupNumber)++;
             add_count++;
         }
 
@@ -156,8 +170,8 @@ class ManagerOfGroups {
 
             uint32_t eraseNumber= at(eraseGroupPixel); 
             uint32_t expandNumber= at(pixelOfGroupToExpand); 
-            pixelCounters.at(expandNumber)+= pixelCounters.at(eraseNumber);
-            pixelCounters.at(eraseNumber)= 0;
+            //pixelCounters.at(expandNumber)+= pixelCounters.at(eraseNumber);
+            //pixelCounters.at(eraseNumber)= 0;
 
             std::vector<Pixel> toDoStack;
 
@@ -187,12 +201,23 @@ class ManagerOfGroups {
         uint32_t getLastGroupNumber() const {
             return groupCounter;
         }
-
+/*
         uint32_t getGroupSize(uint32_t groupNumber) const {
            return pixelCounters.at(groupNumber);
         } 
-
+*/
     private:
+
+
+        std::vector<uint32_t> board;
+
+//        std::vector<uint32_t> pixelCounters;
+
+        uint32_t groupCounter;
+    public:
+
+        size_t width;  
+        size_t height;  
 
         const uint32_t& at(Pixel pixel) const {
             return board.at(pixel.y*width+pixel.x);
@@ -201,14 +226,6 @@ class ManagerOfGroups {
         uint32_t& at(Pixel pixel) {
             return board.at(pixel.y*width+pixel.x);
         }
-
-        size_t width;  
-        size_t height;  
-        std::vector<uint32_t> board;
-
-        std::vector<uint32_t> pixelCounters;
-
-        uint32_t groupCounter;
 };
 
 
@@ -295,7 +312,7 @@ void findMarks(jbyte* data, Count width,Count height) {
 
 extern "C" {
 ///////////////////////////////////////////////////////////
-
+/*
 uint32_t countGroupsWithSameSize(ManagerOfGroups& manager, uint32_t groupNumber) {
     uint32_t groupSize= manager.getGroupSize(groupNumber);
     uint32_t count= 1;
@@ -305,6 +322,51 @@ uint32_t countGroupsWithSameSize(ManagerOfGroups& manager, uint32_t groupNumber)
         }
     }
     return count;
+}
+*/
+size_t processGroups(Bitmap bitmap, ManagerOfGroups& manager,Pixel pixel) {
+    std::set<Pixel> processedPixels;
+    std::vector<Pixel> toDoStack;
+
+    std::set<uint32_t> neighbors;
+    uint32_t groupNumber= manager.getGroupNumber(pixel);
+
+    toDoStack.push_back(pixel);
+    while (!toDoStack.empty()) {
+        Pixel nextPixel= toDoStack.back();
+        toDoStack.pop_back();
+        if (processedPixels.count(nextPixel) == 0) {
+            if (manager.getGroupNumber(nextPixel) == groupNumber) {
+                processedPixels.insert(nextPixel); 
+                if (pixel.y != 0) {
+                    toDoStack.push_back(pixel.highNeighbor());
+                }
+                if (pixel.x != manager.width - 1) {
+                    toDoStack.push_back(pixel.rightNeighbor());
+                }
+                if (pixel.y != manager.height - 1) {
+                    toDoStack.push_back(pixel.lowNeighbor());
+                }
+                if (pixel.x != 0) {
+                    toDoStack.push_back(pixel.leftNeighbor());
+                }
+            } else {
+               neighbors.insert(manager.getGroupNumber(nextPixel));
+            } 
+        }
+    }
+
+    if (neighbors.size() == 1) {
+       for (std::set<Pixel>::const_iterator item= processedPixels.begin(); item != processedPixels.end(); ++item) {
+            Pixel pixel= *item;
+            pixel.setColor(processedPixels.size() == 1 ? 255 : 0);
+        }
+    }
+
+    if (processedPixels.size() != 1) {
+        return 777;
+    }
+    return neighbors.size();
 }
 
 JNIEXPORT jint JNICALL
@@ -342,6 +404,30 @@ Java_org_yegor_reader_PreviewProcessor_processFrame( JNIEnv* env,jobject thiz, j
     LOG("add_count = %d",add_count);
     LOG("recursive_count = %d",recursive_count);
 
+    uint32_t countOfAnclaves= 0;
+
+    for (size_t y= 0; y< height; y++) {
+        for (size_t x= 0; x < width; x++) {
+            Pixel pixel= bitmap.pixel(x,y);
+            pixel.setColor(128);
+        }
+    }
+
+    for (size_t y= 0; y< height; y++) {
+        for (size_t x= 0; x < width; x++) {
+            Pixel pixel= bitmap.pixel(x,y);
+            if (manager.getGroupNumber(pixel) == y*width+x+1) {
+                size_t countOfNeighborGroups= processGroups(bitmap,manager,pixel);
+                if (countOfNeighborGroups == 1) {
+                    countOfAnclaves++;
+                }
+            }
+        }
+    }
+
+    LOG("Count of anclaves = %d",countOfAnclaves);
+
+/*
 // Key - count of pixels in a group, value - count of such groups
     typedef std::map<uint32_t,uint32_t> group_summary_map;
     group_summary_map groupCountersSummary;
@@ -358,6 +444,7 @@ Java_org_yegor_reader_PreviewProcessor_processFrame( JNIEnv* env,jobject thiz, j
         LOG("%d pixel(s) in %d group(s)",index->first,index->second);
     }
   
+*/
 /*
   int counter = 0;
   size_t x,y;
