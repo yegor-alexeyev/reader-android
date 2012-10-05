@@ -4,8 +4,8 @@
 #include <unistd.h>
 #include <cstdlib>
 
-#define _GLIBCXX_PERMIT_BACKWARD_HASH
-#include <ext/hash_map>
+#include <map>
+#include <vector>
 
 #include <android/log.h>
 
@@ -121,7 +121,8 @@ class ManagerOfGroups {
            width(width),
            height(height),
            board(width*height,0),
-           groupCounter(0)  {
+           groupCounter(0),
+           pixelCounters(1,0)  {
         }
 
         uint32_t getGroupNumber(Pixel pixel) const {
@@ -138,11 +139,13 @@ class ManagerOfGroups {
         void createGroup(Pixel pixel) {
             groupCounter++;
             at(pixel)= groupCounter;
+            pixelCounters.push_back(1);
             create_count++;
         }
 
         void addToGroup(uint32_t groupNumber, Pixel pixel) {
             at(pixel)= groupNumber;
+            pixelCounters.at(groupNumber)++;
             add_count++;
         }
 
@@ -153,6 +156,8 @@ class ManagerOfGroups {
 
             uint32_t eraseNumber= at(eraseGroupPixel); 
             uint32_t expandNumber= at(pixelOfGroupToExpand); 
+            pixelCounters.at(expandNumber)+= pixelCounters.at(eraseNumber);
+            pixelCounters.at(eraseNumber)= 0;
 
             std::vector<Pixel> toDoStack;
 
@@ -183,6 +188,10 @@ class ManagerOfGroups {
             return groupCounter;
         }
 
+        uint32_t getGroupSize(uint32_t groupNumber) const {
+           return pixelCounters.at(groupNumber);
+        } 
+
     private:
 
         const uint32_t& at(Pixel pixel) const {
@@ -197,6 +206,8 @@ class ManagerOfGroups {
         size_t height;  
         std::vector<uint32_t> board;
 
+        std::vector<uint32_t> pixelCounters;
+
         uint32_t groupCounter;
 };
 
@@ -206,7 +217,7 @@ class ManagerOfGroups {
 
 void processNeighbor(ManagerOfGroups& manager, Pixel pixel, Pixel neighbor) {
     if (!manager.isInGroup(neighbor) || manager.getGroupNumber(neighbor) != manager.getGroupNumber(pixel)) {
-        if (abs(pixel.color()  - neighbor.color()) < 2) {
+        if (pixel.color() == neighbor.color()) {
             if (manager.isInGroup(neighbor)) {
                 manager.mergeGroups(pixel, neighbor);
             } else {
@@ -285,6 +296,16 @@ void findMarks(jbyte* data, Count width,Count height) {
 extern "C" {
 ///////////////////////////////////////////////////////////
 
+uint32_t countGroupsWithSameSize(ManagerOfGroups& manager, uint32_t groupNumber) {
+    uint32_t groupSize= manager.getGroupSize(groupNumber);
+    uint32_t count= 1;
+    for (uint32_t testGroupNumber= groupNumber+1; testGroupNumber <= manager.getLastGroupNumber(); testGroupNumber++) {
+        if (manager.getGroupSize(testGroupNumber) == groupSize) {
+            count++;
+        }
+    }
+    return count;
+}
 
 JNIEXPORT jint JNICALL
 Java_org_yegor_reader_PreviewProcessor_processFrame( JNIEnv* env,jobject thiz, jbyteArray jdata, jint width, jint height)
@@ -308,7 +329,7 @@ Java_org_yegor_reader_PreviewProcessor_processFrame( JNIEnv* env,jobject thiz, j
             Pixel pixel= bitmap.pixel(x,y);
             uint32_t number = manager.isInGroup(pixel) ? manager.getGroupNumber(pixel) : 0;
             //uint8_t color= number*255/manager.getLastGroupNumber();
-            uint8_t color= number % 256;
+            uint8_t color= number*100 % 256;
             
             //LOG("x y = %d %d",y,x);
 //            yuv[y*width+x]= 0;
@@ -321,7 +342,21 @@ Java_org_yegor_reader_PreviewProcessor_processFrame( JNIEnv* env,jobject thiz, j
     LOG("add_count = %d",add_count);
     LOG("recursive_count = %d",recursive_count);
 
+// Key - count of pixels in a group, value - count of such groups
+    typedef std::map<uint32_t,uint32_t> group_summary_map;
+    group_summary_map groupCountersSummary;
+    for (uint32_t groupNumber= 1; groupNumber <= manager.getLastGroupNumber(); groupNumber++) {
+        uint32_t groupSize= manager.getGroupSize(groupNumber);
+        if (groupCountersSummary.count(groupSize) == 0) {
+            uint32_t count= countGroupsWithSameSize(manager, groupNumber);
+            groupCountersSummary[groupSize]= count;
+        }
+    }    
 
+
+    for (group_summary_map::const_iterator index= groupCountersSummary.begin(); index != groupCountersSummary.end(); index++) {
+        LOG("%d pixel(s) in %d group(s)",index->first,index->second);
+    }
   
 /*
   int counter = 0;
