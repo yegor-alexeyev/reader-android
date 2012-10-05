@@ -25,7 +25,13 @@ class BitmapBase {
 
 
         bool operator <(const BitmapBase& rightArgument) const {
-           return data < rightArgument.data || height < rightArgument.height || width < rightArgument.width;
+            if (data != rightArgument.data) {
+                return data < rightArgument.data;
+            }
+            if (height != rightArgument.height) {
+                return height < rightArgument.height;
+            }
+            return width < rightArgument.width;
         } 
 
     private:
@@ -71,7 +77,13 @@ private:
 public:
 
     bool operator < (const Pixel& rightArgument) const {
-        return bitmap < rightArgument.bitmap || y < rightArgument.y || x < rightArgument.x; 
+        if (bitmap < rightArgument.bitmap || rightArgument.bitmap < bitmap) {
+            return bitmap < rightArgument.bitmap;
+        }
+        if (y != rightArgument.y) {
+            return y < rightArgument.y;
+        }
+        return x < rightArgument.x;
     }
 
     uint8_t color() const {
@@ -324,7 +336,7 @@ uint32_t countGroupsWithSameSize(ManagerOfGroups& manager, uint32_t groupNumber)
     return count;
 }
 */
-size_t processGroups(Bitmap bitmap, ManagerOfGroups& manager,Pixel pixel) {
+size_t processGroup(Bitmap bitmap, ManagerOfGroups& manager,Pixel pixel) {
     std::set<Pixel> processedPixels;
     std::vector<Pixel> toDoStack;
 
@@ -335,20 +347,21 @@ size_t processGroups(Bitmap bitmap, ManagerOfGroups& manager,Pixel pixel) {
     while (!toDoStack.empty()) {
         Pixel nextPixel= toDoStack.back();
         toDoStack.pop_back();
+//        LOG("toDoStack.size() = %d",toDoStack.size());
         if (processedPixels.count(nextPixel) == 0) {
             if (manager.getGroupNumber(nextPixel) == groupNumber) {
                 processedPixels.insert(nextPixel); 
-                if (pixel.y != 0) {
-                    toDoStack.push_back(pixel.highNeighbor());
+                if (nextPixel.y != 0) {
+                    toDoStack.push_back(nextPixel.highNeighbor());
                 }
-                if (pixel.x != manager.width - 1) {
-                    toDoStack.push_back(pixel.rightNeighbor());
+                if (nextPixel.x != manager.width - 1) {
+                    toDoStack.push_back(nextPixel.rightNeighbor());
                 }
-                if (pixel.y != manager.height - 1) {
-                    toDoStack.push_back(pixel.lowNeighbor());
+                if (nextPixel.y != manager.height - 1) {
+                    toDoStack.push_back(nextPixel.lowNeighbor());
                 }
-                if (pixel.x != 0) {
-                    toDoStack.push_back(pixel.leftNeighbor());
+                if (nextPixel.x != 0) {
+                    toDoStack.push_back(nextPixel.leftNeighbor());
                 }
             } else {
                neighbors.insert(manager.getGroupNumber(nextPixel));
@@ -363,9 +376,6 @@ size_t processGroups(Bitmap bitmap, ManagerOfGroups& manager,Pixel pixel) {
         }
     }
 
-    if (processedPixels.size() != 1) {
-        return 777;
-    }
     return neighbors.size();
 }
 
@@ -417,7 +427,7 @@ Java_org_yegor_reader_PreviewProcessor_processFrame( JNIEnv* env,jobject thiz, j
         for (size_t x= 0; x < width; x++) {
             Pixel pixel= bitmap.pixel(x,y);
             if (manager.getGroupNumber(pixel) == y*width+x+1) {
-                size_t countOfNeighborGroups= processGroups(bitmap,manager,pixel);
+                size_t countOfNeighborGroups= processGroup(bitmap,manager,pixel);
                 if (countOfNeighborGroups == 1) {
                     countOfAnclaves++;
                 }
