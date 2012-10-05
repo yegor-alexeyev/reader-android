@@ -33,38 +33,48 @@ public class PreviewProcessor implements Runnable {
         this.camera= camera;
     }
 
+    private Bitmap createBitmapFromPreviewData(Image frame, int beginX, int endX) {
+        int cropFromBegin= beginX;
+        int cropFromEnd= frame.width - endX;
+        int croppedWidth= frame.width - cropFromBegin - cropFromEnd;
+        int intData[]= new int[croppedWidth*frame.height];
+        
+        for (int y= 0; y < frame.height; y++) {
+            for (int x= cropFromBegin; x < frame.width - cropFromEnd; x++) {
+                int intDataPosition= y*croppedWidth + x - cropFromBegin;
+                int frameDataPosition= y*frame.width + x;
+                intData[intDataPosition]= frame.data[frameDataPosition];
+
+                intData[intDataPosition]= frame.data[frameDataPosition] < 0 ? 256 + frame.data[frameDataPosition] : frame.data[frameDataPosition];
+                intData[intDataPosition]= intData[intDataPosition] + intData[intDataPosition]*256 + intData[intDataPosition]*256*256;
+                intData[intDataPosition]|= 0xFF000000;
+            }
+        }
+
+        return Bitmap.createBitmap(intData, croppedWidth, frame.height, Bitmap.Config.ARGB_8888);
+    }        
+
     private void processPreviewFrames() {
         while (!Thread.currentThread().isInterrupted()) {
             try {
                 Image frame= sourceOfPreviewFrames.take();
+
+                Bitmap originalPicture= createBitmapFromPreviewData(frame,170,170+300);
+
                 int counter= processFrame(frame.data, frame.width,frame.height);
                 boolean is_image_sharp= counter > 100;
                 if (is_image_sharp) {
                     Log.i(TAG,"sharp frame");
                 } 
-                int intData[]= new int[(frame.width - 2*70)*frame.height];
-                
-                for (int i= 0; i < (frame.width - 2*70)*frame.height; i++) {
-                }
 
-                for (int y= 0; y < frame.height; y++) {
-                    for (int x= 70; x < frame.width - 70; x++) {
-                        int intDataPosition= y*(frame.width - 70*2) + x - 70;
-                        int frameDataPosition= y*frame.width + x;
-                        intData[intDataPosition]= frame.data[frameDataPosition];
-
-                        intData[intDataPosition]= frame.data[frameDataPosition] < 0 ? 256 + frame.data[frameDataPosition] : frame.data[frameDataPosition];
-                        intData[intDataPosition]= intData[intDataPosition] + intData[intDataPosition]*256 + intData[intDataPosition]*256*256;
-                        intData[intDataPosition]|= 0xFF000000;
-                    }
-                }
-
+                Bitmap processedPicture= createBitmapFromPreviewData(frame,70,70+500);
                 camera.addCallbackBuffer(frame.data);
-                Bitmap bitmapData= Bitmap.createBitmap(intData, frame.width - 70*2, frame.height, Bitmap.Config.ARGB_8888);
+
                 Canvas canvas= surfaceHolder.lockCanvas();
                 if (canvas!=null) {
                     canvas.rotate(90);
-                    canvas.drawBitmap(bitmapData,0f,-frame.height, new Paint());
+                    canvas.drawBitmap(originalPicture,processedPicture.getWidth() + 45,-frame.height, new Paint());
+                    canvas.drawBitmap(processedPicture,45f,-frame.height, new Paint());
                     surfaceHolder.unlockCanvasAndPost(canvas);
                 }
                     
