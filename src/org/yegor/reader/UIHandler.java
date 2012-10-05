@@ -17,15 +17,12 @@ import android.util.Log;
 
 import org.yegor.reader.Image;
 import org.yegor.reader.PreviewProcessor;
-import org.yegor.reader.opencv.Loader;
 import org.yegor.reader.hardware.camera.Utility;
 
 
-public class UIHandler extends Activity implements Loader.ResultListener, SurfaceHolder.Callback2, Camera.PreviewCallback
+public class UIHandler extends Activity implements SurfaceHolder.Callback2, Camera.PreviewCallback
 {
     private static final String TAG = "reader_UIHandler";
-
-    private final CountDownLatch initializationLatch= new CountDownLatch(1);
 
     private Camera camera;
 
@@ -44,12 +41,6 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
     public void onRestoreInstanceState(Bundle bundle) {
         super.onRestoreInstanceState(bundle);
         Log.i(TAG,"onRestoreInstanceState(Bundle)");
-    }
-
-    @Override
-    public void onOpenCVLoaded() {
-        Log.i(TAG,"onOpenCVLoaded()");
-       initializationLatch.countDown(); 
     }
 
     private void openCamera() {
@@ -90,7 +81,6 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
     {
         super.onCreate(savedInstanceState);
         Log.i(TAG,"onCreate()");
-        Loader.startLoad(this,this);
         openCamera();
         getWindow().takeSurface(this);
     }
@@ -110,14 +100,6 @@ public class UIHandler extends Activity implements Loader.ResultListener, Surfac
         if (camera == null) {
             openCamera();
         }
-/*
-        try {
-            initializationLatch.await();
-        } catch (InterruptedException exception) {
-            throw new RuntimeException(exception);
-        }
-*/
-
     }
 
     @Override

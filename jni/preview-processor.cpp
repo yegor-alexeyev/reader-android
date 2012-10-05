@@ -9,12 +9,6 @@
 
 #include <android/log.h>
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/features2d/features2d.hpp>
-
-#include "highlight_letters.h"
-
 #include <memory>
 
 #define  LOG(x...)  __android_log_print(ANDROID_LOG_INFO,"reader",x)
@@ -212,7 +206,7 @@ class ManagerOfGroups {
 
 void processNeighbor(ManagerOfGroups& manager, Pixel pixel, Pixel neighbor) {
     if (!manager.isInGroup(neighbor) || manager.getGroupNumber(neighbor) != manager.getGroupNumber(pixel)) {
-        if (abs(pixel.color()  - neighbor.color()) < 10) {
+        if (abs(pixel.color()  - neighbor.color()) < 2) {
             if (manager.isInGroup(neighbor)) {
                 manager.mergeGroups(pixel, neighbor);
             } else {
@@ -313,7 +307,8 @@ Java_org_yegor_reader_PreviewProcessor_processFrame( JNIEnv* env,jobject thiz, j
         for (size_t x= 0; x < width; x++) {
             Pixel pixel= bitmap.pixel(x,y);
             uint32_t number = manager.isInGroup(pixel) ? manager.getGroupNumber(pixel) : 0;
-            uint8_t color= number*255/manager.getLastGroupNumber();
+            //uint8_t color= number*255/manager.getLastGroupNumber();
+            uint8_t color= number % 256;
             
             //LOG("x y = %d %d",y,x);
 //            yuv[y*width+x]= 0;
@@ -327,25 +322,6 @@ Java_org_yegor_reader_PreviewProcessor_processFrame( JNIEnv* env,jobject thiz, j
     LOG("recursive_count = %d",recursive_count);
 
 
-    //cv::Mat lumaPlane(height,width,CV_8UC1,(unsigned char*) yuv);
-
-    //for (int y= 0; y < lumaPlane.rows - 1; y++) {
-        //for (int x= 0; x < lumaPlane.cols - 1; x++) {
-           //int new_value= get_color(lumaPlane.at<jbyte>(y,x)) - get_color(lumaPlane.at<jbyte>(y + 1,x+1));
-           //new_value= std::max(new_value,-128);
-           //new_value= std::min(new_value,127);
-           //new_value+=128;
-           //lumaPlane.at<jbyte>(y,x)= get_jbyte_value(new_value); 
-        //}
-    //}
-        
-    //const int cn = lumaPlane.channels();
-    //cv::Mat dx(lumaPlane.rows, lumaPlane.cols, CV_16SC(cn));
-    //cv::Mat dy(src.rows, src.cols, CV_16SC(cn));
-//Canny
-    //cv::Sobel(lumaPlane, dx, CV_8U, 1, 0, 3, 1, 0, cv::BORDER_DEFAULT);
-//  highlight_letters(lumaPlane,dx,20,60,3,true);
-  //dx.copyTo(lumaPlane);
   
 /*
   int counter = 0;
