@@ -321,8 +321,11 @@ void findMarks(jbyte* data, Count width,Count height) {
   }
 }
 
+Pixel unpackGroupPixel(Bitmap& bitmap, uint32_t groupNumber) {
+    uint32_t index= groupNumber - 1;
+    return bitmap.pixel(index%bitmap.width, index/bitmap.width);
+}
 
-extern "C" {
 ///////////////////////////////////////////////////////////
 /*
 uint32_t countGroupsWithSameSize(ManagerOfGroups& manager, uint32_t groupNumber) {
@@ -336,7 +339,7 @@ uint32_t countGroupsWithSameSize(ManagerOfGroups& manager, uint32_t groupNumber)
     return count;
 }
 */
-size_t processGroup(Bitmap bitmap, ManagerOfGroups& manager,Pixel pixel) {
+bool processGroup(Bitmap bitmap, ManagerOfGroups& manager,Pixel pixel) {
     std::set<Pixel> processedPixels;
     std::vector<Pixel> toDoStack;
 
@@ -369,15 +372,31 @@ size_t processGroup(Bitmap bitmap, ManagerOfGroups& manager,Pixel pixel) {
         }
     }
 
-    if (neighbors.size() == 1) {
-       for (std::set<Pixel>::const_iterator item= processedPixels.begin(); item != processedPixels.end(); ++item) {
-            Pixel pixel= *item;
-            pixel.setColor(processedPixels.size() == 1 ? 255 : 0);
+
+
+    std::set<uint32_t>::const_iterator item= neighbors.begin();
+    if (item == neighbors.end()) {
+        return true;
+    }
+    bool isMaximum= pixel.color() > unpackGroupPixel(bitmap,*item).color();
+
+    item++;
+    for (; item != neighbors.end(); ++item) {
+        Pixel groupPixel = unpackGroupPixel(bitmap, *item);
+        bool isNextMaximum= pixel.color() > groupPixel.color(); 
+        if (isMaximum != isNextMaximum) {
+            return false;
         }
     }
 
-    return neighbors.size();
+   for (std::set<Pixel>::const_iterator item= processedPixels.begin(); item != processedPixels.end(); ++item) {
+        Pixel pixel= *item;
+        pixel.setColor(isMaximum ? 255 : 0);
+    }
+    return true;
 }
+
+extern "C" {
 
 JNIEXPORT jint JNICALL
 Java_org_yegor_reader_PreviewProcessor_processFrame( JNIEnv* env,jobject thiz, jbyteArray jdata, jint width, jint height)
@@ -427,8 +446,7 @@ Java_org_yegor_reader_PreviewProcessor_processFrame( JNIEnv* env,jobject thiz, j
         for (size_t x= 0; x < width; x++) {
             Pixel pixel= bitmap.pixel(x,y);
             if (manager.getGroupNumber(pixel) == y*width+x+1) {
-                size_t countOfNeighborGroups= processGroup(bitmap,manager,pixel);
-                if (countOfNeighborGroups == 1) {
+                if (processGroup(bitmap,manager,pixel)) {
                     countOfAnclaves++;
                 }
             }
