@@ -367,6 +367,9 @@ bool processGroup(Bitmap bitmap, ManagerOfGroups& manager,Pixel pixel) {
                     toDoStack.push_back(nextPixel.leftNeighbor());
                 }
             } else {
+                if (nextPixel.color() == pixel.color()) {
+                    LOG("Same-color neighbors: (%d %d) and (%d %d), color = %d",nextPixel.x,nextPixel.y,pixel.x,pixel.y,pixel.color());
+                }
                neighbors.insert(manager.getGroupNumber(nextPixel));
             } 
         }
@@ -414,7 +417,7 @@ Java_org_yegor_reader_PreviewProcessor_processFrame( JNIEnv* env,jobject thiz, j
     Bitmap bitmap(yuv, width,height);
     ManagerOfGroups manager(bitmap.width,bitmap.height);
     groupPixels(manager, bitmap);
-
+/*
     for (size_t y= 0; y< height; y++) {
         for (size_t x= 0; x < width; x++) {
             Pixel pixel= bitmap.pixel(x,y);
@@ -427,7 +430,7 @@ Java_org_yegor_reader_PreviewProcessor_processFrame( JNIEnv* env,jobject thiz, j
             pixel.setColor(color);
         }
     }
-
+*/
     LOG("create count = %d",create_count);
     LOG("merge_count = %d",merge_count);
     LOG("add_count = %d",add_count);
@@ -435,13 +438,14 @@ Java_org_yegor_reader_PreviewProcessor_processFrame( JNIEnv* env,jobject thiz, j
 
     uint32_t countOfAnclaves= 0;
 
+/*
     for (size_t y= 0; y< height; y++) {
         for (size_t x= 0; x < width; x++) {
             Pixel pixel= bitmap.pixel(x,y);
             pixel.setColor(128);
         }
     }
-
+*/
     for (size_t y= 0; y< height; y++) {
         for (size_t x= 0; x < width; x++) {
             Pixel pixel= bitmap.pixel(x,y);
