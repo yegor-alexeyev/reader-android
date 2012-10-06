@@ -58,8 +58,6 @@ inline void set_color_value(jbyte* data,size_t x,size_t y, size_t width, uint8_t
         value= color;
     }
    
-  //data[y*width+x]= color > 127 ? color - 256 : color;
-  //LOG("color = %d",color);
   data[y*width+x]= value;
 } 
 
@@ -144,8 +142,6 @@ class ManagerOfGroups {
            height(height),
            board(width*height,0),
            groupCounter(0)
-//,
-           //pixelCounters(1,0)  
         {
         }
 
@@ -162,16 +158,12 @@ class ManagerOfGroups {
 
         void createGroup(Pixel pixel) {
             groupCounter++;
-            //LOG("x = %d, y = %d",pixel.x,pixel.y);
-            //at(pixel)= groupCounter;
             at(pixel)= pixel.y*width+pixel.x+1;
-            //pixelCounters.push_back(1);
             create_count++;
         }
 
         void addToGroup(uint32_t groupNumber, Pixel pixel) {
             at(pixel)= groupNumber;
-            //pixelCounters.at(groupNumber)++;
             add_count++;
         }
 
@@ -182,8 +174,6 @@ class ManagerOfGroups {
 
             uint32_t eraseNumber= at(eraseGroupPixel); 
             uint32_t expandNumber= at(pixelOfGroupToExpand); 
-            //pixelCounters.at(expandNumber)+= pixelCounters.at(eraseNumber);
-            //pixelCounters.at(eraseNumber)= 0;
 
             std::vector<Pixel> toDoStack;
 
@@ -213,17 +203,12 @@ class ManagerOfGroups {
         uint32_t getLastGroupNumber() const {
             return groupCounter;
         }
-/*
-        uint32_t getGroupSize(uint32_t groupNumber) const {
-           return pixelCounters.at(groupNumber);
-        } 
-*/
+
     private:
 
 
         std::vector<uint32_t> board;
 
-//        std::vector<uint32_t> pixelCounters;
 
         uint32_t groupCounter;
     public:
@@ -287,7 +272,6 @@ inline void set_color_value(jbyte* data,size_t x,size_t y, jint width, int color
     color= 255;
   }
   data[y*width+x]= color > 127 ? color - 256 : color;
-//  data[y*width+x]= color;
 } 
 
 typedef uint16_t Count;
@@ -313,8 +297,7 @@ void findMarks(jbyte* data, Count width,Count height) {
   for ( Count y= height/8; y < 7*height/8; y++) {
     for ( Count x= width/8; x < 7*width/8; x++) { 
       if ( get_color_value(data, x,y,width)== 255 ) {
-//        __android_log_print(ANDROID_LOG_INFO,"reader_native","Canny color: %d",get_color_value(data,x,y,width));        
-        //fillColor+=10;
+
         colorMark(data, width, height, x, y, fillColor); 
       }
     }
@@ -327,18 +310,7 @@ Pixel unpackGroupPixel(Bitmap& bitmap, uint32_t groupNumber) {
 }
 
 ///////////////////////////////////////////////////////////
-/*
-uint32_t countGroupsWithSameSize(ManagerOfGroups& manager, uint32_t groupNumber) {
-    uint32_t groupSize= manager.getGroupSize(groupNumber);
-    uint32_t count= 1;
-    for (uint32_t testGroupNumber= groupNumber+1; testGroupNumber <= manager.getLastGroupNumber(); testGroupNumber++) {
-        if (manager.getGroupSize(testGroupNumber) == groupSize) {
-            count++;
-        }
-    }
-    return count;
-}
-*/
+
 bool processGroup(Bitmap bitmap, ManagerOfGroups& manager,Pixel pixel) {
     std::set<Pixel> processedPixels;
     std::vector<Pixel> toDoStack;
@@ -350,7 +322,6 @@ bool processGroup(Bitmap bitmap, ManagerOfGroups& manager,Pixel pixel) {
     while (!toDoStack.empty()) {
         Pixel nextPixel= toDoStack.back();
         toDoStack.pop_back();
-//        LOG("toDoStack.size() = %d",toDoStack.size());
         if (processedPixels.count(nextPixel) == 0) {
             if (manager.getGroupNumber(nextPixel) == groupNumber) {
                 processedPixels.insert(nextPixel); 
@@ -425,8 +396,6 @@ Java_org_yegor_reader_PreviewProcessor_processFrame( JNIEnv* env,jobject thiz, j
             //uint8_t color= number*255/manager.getLastGroupNumber();
             uint8_t color= number*100 % 256;
             
-            //LOG("x y = %d %d",y,x);
-//            yuv[y*width+x]= 0;
             pixel.setColor(color);
         }
     }
@@ -438,14 +407,6 @@ Java_org_yegor_reader_PreviewProcessor_processFrame( JNIEnv* env,jobject thiz, j
 
     uint32_t countOfAnclaves= 0;
 
-/*
-    for (size_t y= 0; y< height; y++) {
-        for (size_t x= 0; x < width; x++) {
-            Pixel pixel= bitmap.pixel(x,y);
-            pixel.setColor(128);
-        }
-    }
-*/
     for (size_t y= 0; y< height; y++) {
         for (size_t x= 0; x < width; x++) {
             Pixel pixel= bitmap.pixel(x,y);
@@ -458,48 +419,6 @@ Java_org_yegor_reader_PreviewProcessor_processFrame( JNIEnv* env,jobject thiz, j
     }
 
     LOG("Count of anclaves = %d",countOfAnclaves);
-
-/*
-// Key - count of pixels in a group, value - count of such groups
-    typedef std::map<uint32_t,uint32_t> group_summary_map;
-    group_summary_map groupCountersSummary;
-    for (uint32_t groupNumber= 1; groupNumber <= manager.getLastGroupNumber(); groupNumber++) {
-        uint32_t groupSize= manager.getGroupSize(groupNumber);
-        if (groupCountersSummary.count(groupSize) == 0) {
-            uint32_t count= countGroupsWithSameSize(manager, groupNumber);
-            groupCountersSummary[groupSize]= count;
-        }
-    }    
-
-
-    for (group_summary_map::const_iterator index= groupCountersSummary.begin(); index != groupCountersSummary.end(); index++) {
-        LOG("%d pixel(s) in %d group(s)",index->first,index->second);
-    }
-  
-*/
-/*
-  int counter = 0;
-  size_t x,y;
-  for (y= height/8; y < 7*height/8; y++) {
-    for (x= width/8; x < 7*width/8; x++) {
-      uint8_t middle_color= get_color_value(yuv,x,y,width);
-//      uint8_t top_color= get_color_value(yuv,x,y-1,width);
-      uint8_t right_color= get_color_value(yuv,x+1,y,width);
-      uint8_t bottom_color= get_color_value(yuv,x,y+1,width);
-//      uint8_t left_color= get_color_value(yuv,x-1,y,width);
-//      int delta= abs(middle_color*4 - top_color - right_color - bottom_color - left_color);
-      int delta= abs(middle_color*2 - right_color - bottom_color);
-      if (delta > 16) {
-//        counter++;
-        set_color_value(yuv,x,y,width, 1);
-      }
-      else {
-        set_color_value(yuv,x,y,width, 0);
-      }
-    }
-  }
-*/
-//  findMarks(yuv,width,height);
 
   (*env).ReleaseByteArrayElements(jdata,yuv,0);
 
