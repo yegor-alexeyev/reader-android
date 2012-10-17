@@ -125,15 +125,6 @@ class Bitmap : public BitmapBase {
 static int create_count= 0;
 static int merge_count= 0;
 static int add_count= 0;
-static int recursive_count= 0;
-
-class group_range_hasher {
-public:
-
-    size_t operator ()(uint32_t value) const {
-        return value;
-    }
-};
 
 class ManagerOfGroups {
     public:
@@ -383,7 +374,6 @@ Java_org_yegor_reader_PreviewProcessor_processFrame( JNIEnv* env,jobject thiz, j
     create_count= 0;
     merge_count= 0;
     add_count= 0;
-    recursive_count= 0;
 
     Bitmap bitmap(yuv, width,height);
     ManagerOfGroups manager(bitmap.width,bitmap.height);
@@ -403,7 +393,6 @@ Java_org_yegor_reader_PreviewProcessor_processFrame( JNIEnv* env,jobject thiz, j
     LOG("create count = %d",create_count);
     LOG("merge_count = %d",merge_count);
     LOG("add_count = %d",add_count);
-    LOG("recursive_count = %d",recursive_count);
 
     uint32_t countOfAnclaves= 0;
 
