@@ -225,7 +225,7 @@ class ManagerOfGroups {
 
 
 void processNeighbor(ManagerOfGroups& manager, Pixel pixel, Pixel neighbor) {
-    if (!manager.isInGroup(neighbor) || !manager.isInSameGroup(pixel,neighbor) {
+    if (!manager.isInGroup(neighbor) || !manager.isInSameGroup(pixel,neighbor)) {
         if (pixel.color() == neighbor.color()) {
             if (manager.isInGroup(neighbor)) {
                 manager.mergeGroups(pixel, neighbor);
