@@ -147,6 +147,10 @@ class ManagerOfGroups {
             return at(pixel) != 0;
         }
 
+        bool isInSameGroup(Pixel pixel1, Pixel pixel2) {
+            return getGroupNumber(pixel1) == getGroupNumber(pixel2);
+        }
+
         void createGroup(Pixel pixel) {
             groupCounter++;
             at(pixel)= pixel.y*width+pixel.x+1;
@@ -221,7 +225,7 @@ class ManagerOfGroups {
 
 
 void processNeighbor(ManagerOfGroups& manager, Pixel pixel, Pixel neighbor) {
-    if (!manager.isInGroup(neighbor) || manager.getGroupNumber(neighbor) != manager.getGroupNumber(pixel)) {
+    if (!manager.isInGroup(neighbor) || !manager.isInSameGroup(pixel,neighbor) {
         if (pixel.color() == neighbor.color()) {
             if (manager.isInGroup(neighbor)) {
                 manager.mergeGroups(pixel, neighbor);
