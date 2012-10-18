@@ -24,6 +24,10 @@ class BitmapBase {
         } 
 
 
+        bool operator !=(const BitmapBase& bitmapBase) {
+            return data != bitmapBase.data || width != bitmapBase.width || height != bitmapBase.height;
+        }
+
         bool operator <(const BitmapBase& rightArgument) const {
             if (data != rightArgument.data) {
                 return data < rightArgument.data;
@@ -61,6 +65,16 @@ inline void set_color_value(jbyte* data,size_t x,size_t y, size_t width, uint8_t
   data[y*width+x]= value;
 } 
 
+enum Axis {
+    x = -1
+    ,y = 1
+};
+
+const int negative_direction = -1;
+const int positive_direction = 1;
+        
+
+
 class Pixel {
     friend class Bitmap;
 private:
@@ -73,6 +87,10 @@ private:
      BitmapBase bitmap;
 
 public:
+
+    bool operator != (const Pixel& pixel) {
+        return bitmap != pixel.bitmap || x != pixel.x || y != pixel.y;
+    }
 
     bool operator < (const Pixel& rightArgument) const {
         if (bitmap < rightArgument.bitmap || rightArgument.bitmap < bitmap) {
@@ -94,18 +112,34 @@ public:
     size_t x;
     size_t y;
 
-    Pixel highNeighbor() {
+    Pixel neighbor(Axis axis, int direction) const {
+        if (axis == x) {
+            if (direction == positive_direction) {
+                return rightNeighbor();
+            } else {
+                return leftNeighbor();
+            }
+        } else {
+            if ( direction == positive_direction) {
+                return lowNeighbor();
+            } else {
+                return highNeighbor();
+            }
+        }
+    }
+
+    Pixel highNeighbor() const{
         return Pixel(bitmap,x,y-1);       
     }
         
-    Pixel lowNeighbor() {
+    Pixel lowNeighbor() const {
         return Pixel(bitmap,x,y+1);
     }
-    Pixel leftNeighbor() {
+    Pixel leftNeighbor() const {
         return Pixel(bitmap,x-1,y);
     }
 
-    Pixel rightNeighbor() {
+    Pixel rightNeighbor() const {
         return Pixel(bitmap,x+1,y);
     }
 
@@ -147,7 +181,7 @@ class ManagerOfGroups {
             return at(pixel) != 0;
         }
 
-        bool isInSameGroup(Pixel pixel1, Pixel pixel2) {
+        bool isInSameGroup(Pixel pixel1, Pixel pixel2) const {
             return getGroupNumber(pixel1) == getGroupNumber(pixel2);
         }
 
@@ -306,6 +340,108 @@ Pixel unpackGroupPixel(Bitmap& bitmap, uint32_t groupNumber) {
 
 ///////////////////////////////////////////////////////////
 
+class PixelEdge {
+private:
+    Pixel pixel;
+    Axis axis;
+    int direction;
+
+public:
+    bool operator !=(PixelEdge pixelEdge) {
+        return pixel != pixelEdge.pixel
+            || axis != pixelEdge.axis
+            || direction != pixelEdge.direction;
+    }
+
+    Pixel pixelInside() {
+        return pixel;
+    }
+
+    PixelEdge(Pixel pixel,Axis axis, int direction) :
+        pixel(pixel),
+        axis(axis),
+        direction(direction){
+    }
+
+    PixelEdge nextLeft() {
+        Pixel straightNeighbor= pixel.neighbor(axis,direction);
+        if (axis == x) {
+            return PixelEdge(straightNeighbor.neighbor(y,-direction),y,-direction);
+        } else {
+            return PixelEdge(straightNeighbor.neighbor(x,direction),y,direction);
+        }
+    }
+    
+    PixelEdge nextStraight() {
+        return PixelEdge(pixel.neighbor(axis,direction),axis,direction);
+    }
+    PixelEdge nextRight() {
+        if (axis == x) {
+            return PixelEdge(pixel,y,direction);
+        } else {
+            return PixelEdge(pixel,x,-direction);
+        } 
+    }
+
+    bool isBorder(const ManagerOfGroups& manager) const {
+        return manager.isInSameGroup(pixel,pixelOutside());
+    }
+
+    PixelEdge nextBorder(const ManagerOfGroups& manager) {
+        if (nextLeft().isBorder(manager)) {
+            return nextLeft();
+        }
+        if (nextStraight().isBorder(manager)) {
+            return nextStraight();
+        }
+        if (!nextRight().isBorder(manager)) {
+            LOG("ERROR: non-closed perimeter can not exist");
+        }
+        return nextRight();
+    }
+
+
+    Pixel pixelOutside() const {
+        if (axis == x) {
+            return pixel.neighbor(y,-direction);
+        }
+        else {
+            return pixel.neighbor(x,direction);
+        }
+    }
+
+
+};
+
+
+
+bool processGroupPeriphery(Bitmap bitmap, ManagerOfGroups& manager, Pixel topPixel) {
+    uint8_t groupColor= topPixel.color(); 
+    uint8_t maximumNeighborGroupColor= 0;
+    uint8_t minimumNeighborGroupColor= 255;
+    PixelEdge startPixelEdge(topPixel,x,positive_direction);
+    PixelEdge currentPixelEdge= startPixelEdge;
+    do {
+        uint8_t currentNeighborGroupColor= currentPixelEdge.pixelOutside().color();
+        if (maximumNeighborGroupColor < currentNeighborGroupColor) {
+            maximumNeighborGroupColor= currentNeighborGroupColor;
+        }
+        if (minimumNeighborGroupColor > currentNeighborGroupColor) {
+            minimumNeighborGroupColor= currentNeighborGroupColor;
+        } 
+        currentPixelEdge= currentPixelEdge.nextBorder(manager);
+    }    
+    while (currentPixelEdge != startPixelEdge);
+    if (maximumNeighborGroupColor < groupColor) {
+        return true;
+    }
+    if (minimumNeighborGroupColor > groupColor) {
+        return true;
+    }
+    return false;
+}
+
+/*
 bool processGroup(Bitmap bitmap, ManagerOfGroups& manager,Pixel pixel) {
     std::set<Pixel> processedPixels;
     std::vector<Pixel> toDoStack;
@@ -364,6 +500,7 @@ bool processGroup(Bitmap bitmap, ManagerOfGroups& manager,Pixel pixel) {
     }
     return true;
 }
+*/
 
 extern "C" {
 
@@ -404,7 +541,7 @@ Java_org_yegor_reader_PreviewProcessor_processFrame( JNIEnv* env,jobject thiz, j
         for (size_t x= 0; x < width; x++) {
             Pixel pixel= bitmap.pixel(x,y);
             if (manager.getGroupNumber(pixel) == y*width+x+1) {
-                if (processGroup(bitmap,manager,pixel)) {
+                if (processGroupPeriphery(bitmap,manager,pixel)) {
                     countOfAnclaves++;
                 }
             }
