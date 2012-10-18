@@ -47,8 +47,8 @@ inline void set_color_value(jbyte* data,size_t x,size_t y, size_t width, uint8_t
 } 
 
 enum Axis {
-    x = -1
-    ,y = 1
+    axis_X = -1
+    ,axis_Y = 1
 };
 
 const int negative_direction = -1;
@@ -84,7 +84,7 @@ public:
     size_t y;
 
     Pixel neighbor(Axis axis, int direction) const {
-        if (axis == x) {
+        if (axis == axis_X) {
             if (direction == positive_direction) {
                 return rightNeighbor();
             } else {
@@ -169,8 +169,8 @@ class ManagerOfGroups {
 
         void mergeGroups(Pixel pixel1, Pixel pixel2) {
 
-            Pixel eraseGroupPixel=  at(pixel1) > at(pixel2) ? pixel1 : pixel2;
-            Pixel pixelOfGroupToExpand= at(pixel1) > at(pixel2) ? pixel2 : pixel1;
+            Pixel eraseGroupPixel=  pixel1.y > pixel2.y ? pixel1 : pixel2;
+            Pixel pixelOfGroupToExpand= pixel1.y > pixel2.y ? pixel2 : pixel1;
 
             uint32_t eraseNumber= at(eraseGroupPixel); 
             uint32_t expandNumber= at(pixelOfGroupToExpand); 
@@ -336,10 +336,10 @@ public:
 
     PixelEdge nextLeft() {
         Pixel straightNeighbor= pixel.neighbor(axis,direction);
-        if (axis == x) {
-            return PixelEdge(straightNeighbor.neighbor(y,-direction),y,-direction);
+        if (axis == axis_X) {
+            return PixelEdge(straightNeighbor.neighbor(axis_Y,-direction),axis_Y,-direction);
         } else {
-            return PixelEdge(straightNeighbor.neighbor(x,direction),y,direction);
+            return PixelEdge(straightNeighbor.neighbor(axis_X,direction),axis_X,direction);
         }
     }
     
@@ -347,37 +347,40 @@ public:
         return PixelEdge(pixel.neighbor(axis,direction),axis,direction);
     }
     PixelEdge nextRight() {
-        if (axis == x) {
-            return PixelEdge(pixel,y,direction);
+        if (axis == axis_X) {
+            return PixelEdge(pixel,axis_Y,direction);
         } else {
-            return PixelEdge(pixel,x,-direction);
+            return PixelEdge(pixel,axis_X,-direction);
         } 
     }
 
     bool isBorder(const ManagerOfGroups& manager) const {
-        return manager.isInSameGroup(pixel,pixelOutside());
+        return !manager.isInSameGroup(pixel,pixelOutside());
     }
 
     PixelEdge nextBorder(const ManagerOfGroups& manager) {
-        if (nextLeft().isBorder(manager)) {
+        if (manager.isInSameGroup(pixel, nextLeft().pixelInside()) && nextLeft().isBorder(manager)) {
+            LOG("LEFT\n");
             return nextLeft();
         }
-        if (nextStraight().isBorder(manager)) {
+        if (manager.isInSameGroup(pixel, nextStraight().pixelInside()) && nextStraight().isBorder(manager)) {
+            LOG("STRAIGHT\n");
             return nextStraight();
         }
         if (!nextRight().isBorder(manager)) {
-            LOG("ERROR: non-closed perimeter can not exist");
+            LOG("ERROR: non-closed perimeter can not exist\n");
         }
+        LOG("RIGHT\n");
         return nextRight();
     }
 
 
     Pixel pixelOutside() const {
-        if (axis == x) {
-            return pixel.neighbor(y,-direction);
+        if (axis == axis_X) {
+            return pixel.neighbor(axis_Y,-direction);
         }
         else {
-            return pixel.neighbor(x,direction);
+            return pixel.neighbor(axis_X,direction);
         }
     }
 
@@ -390,9 +393,11 @@ bool processGroupPeriphery(Bitmap bitmap, ManagerOfGroups& manager, Pixel topPix
     uint8_t groupColor= topPixel.color(); 
     uint8_t maximumNeighborGroupColor= 0;
     uint8_t minimumNeighborGroupColor= 255;
-    PixelEdge startPixelEdge(topPixel,x,positive_direction);
+    PixelEdge startPixelEdge(topPixel,axis_X,positive_direction);
     PixelEdge currentPixelEdge= startPixelEdge;
+    LOG("START\n");
     do {
+        LOG("AT %d %d %d %d\n", currentPixelEdge.pixelInside().x, currentPixelEdge.pixelInside().y, currentPixelEdge.pixelOutside().x, currentPixelEdge.pixelOutside().y);
         uint8_t currentNeighborGroupColor= currentPixelEdge.pixelOutside().color();
         if (maximumNeighborGroupColor < currentNeighborGroupColor) {
             maximumNeighborGroupColor= currentNeighborGroupColor;
