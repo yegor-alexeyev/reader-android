@@ -28,16 +28,6 @@ class BitmapBase {
             return data != bitmapBase.data || width != bitmapBase.width || height != bitmapBase.height;
         }
 
-        bool operator <(const BitmapBase& rightArgument) const {
-            if (data != rightArgument.data) {
-                return data < rightArgument.data;
-            }
-            if (height != rightArgument.height) {
-                return height < rightArgument.height;
-            }
-            return width < rightArgument.width;
-        } 
-
     private:
         jbyte* data;
     public:
@@ -90,16 +80,6 @@ public:
 
     bool operator != (const Pixel& pixel) {
         return bitmap != pixel.bitmap || x != pixel.x || y != pixel.y;
-    }
-
-    bool operator < (const Pixel& rightArgument) const {
-        if (bitmap < rightArgument.bitmap || rightArgument.bitmap < bitmap) {
-            return bitmap < rightArgument.bitmap;
-        }
-        if (y != rightArgument.y) {
-            return y < rightArgument.y;
-        }
-        return x < rightArgument.x;
     }
 
     uint8_t color() const {
