@@ -83,6 +83,22 @@ public:
     size_t x;
     size_t y;
 
+    Pixel hasNeighbor(Axis axis, int direction) {
+        if (axis == axis_X) {
+            if (direction == positive_direction) {
+                return x+1 < bitmap.width;
+            } else {
+                return x > 0;
+            }
+        } else {
+            if (direction == positive_direction) {
+                return y+1 < bitmap.height;
+            } else {
+                return y > 0;
+            }
+        }
+    }
+
     Pixel neighbor(Axis axis, int direction) const {
         if (axis == axis_X) {
             if (direction == positive_direction) {
@@ -334,31 +350,48 @@ public:
         direction(direction){
     }
 
-    PixelEdge nextLeft() {
-        Pixel straightNeighbor= pixel.neighbor(axis,direction);
+    int nextLeftDirection() {
         if (axis == axis_X) {
-            return PixelEdge(straightNeighbor.neighbor(axis_Y,-direction),axis_Y,-direction);
+            return -direction;
         } else {
-            return PixelEdge(straightNeighbor.neighbor(axis_X,direction),axis_X,direction);
+            return direction;
         }
     }
+
+    int nextRightDirection() {
+        if (axis == axis_X) {
+            return direction;
+        else {
+            return -direction;
+        }
+    }
+
+    PixelEdge nextLeft() {
+        Pixel straightNeighbor= pixel.neighbor(axis,direction);
+        return PixelEdge(straightNeighbor.neighbor(axis_Y,nextLeftDirection()),axis_Y,nextLeftDirection());
+    }
+
     
     PixelEdge nextStraight() {
         return PixelEdge(pixel.neighbor(axis,direction),axis,direction);
     }
     PixelEdge nextRight() {
-        if (axis == axis_X) {
-            return PixelEdge(pixel,axis_Y,direction);
-        } else {
-            return PixelEdge(pixel,axis_X,-direction);
-        } 
+        return PixelEdge(pixel,axis_Y,nextRightDirection(direction));
     }
+
 
     bool isBorder(const ManagerOfGroups& manager) const {
         return !manager.isInSameGroup(pixel,pixelOutside());
     }
 
     PixelEdge nextBorder(const ManagerOfGroups& manager) {
+        //if (!pixel.hasNeighbor(axis,direction)) {
+            //return nextRight();
+        //}
+       
+        //Pixel nextStraightPixel= pixel.neighbor(axis,direction);
+        //if (nextStraightPixel.hasNeighbor(
+ 
         if (manager.isInSameGroup(pixel, nextLeft().pixelInside()) && nextLeft().isBorder(manager)) {
             LOG("LEFT\n");
             return nextLeft();
