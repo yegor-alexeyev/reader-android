@@ -51,6 +51,10 @@ enum Axis {
     ,axis_Y = 1
 };
 
+Axis change_axis(Axis axis) {
+    return axis == axis_X ? axis_Y: axis_X;
+}
+
 const int negative_direction = -1;
 const int positive_direction = 1;
         
@@ -83,7 +87,7 @@ public:
     size_t x;
     size_t y;
 
-    Pixel hasNeighbor(Axis axis, int direction) {
+    bool hasNeighbor(Axis axis, int direction) {
         if (axis == axis_X) {
             if (direction == positive_direction) {
                 return x+1 < bitmap.width;
@@ -350,7 +354,7 @@ public:
         direction(direction){
     }
 
-    int nextLeftDirection() {
+    int nextLeftDirection() const {
         if (axis == axis_X) {
             return -direction;
         } else {
@@ -358,17 +362,17 @@ public:
         }
     }
 
-    int nextRightDirection() {
+    int nextRightDirection() const {
         if (axis == axis_X) {
             return direction;
-        else {
+        } else {
             return -direction;
         }
     }
 
     PixelEdge nextLeft() {
         Pixel straightNeighbor= pixel.neighbor(axis,direction);
-        return PixelEdge(straightNeighbor.neighbor(axis_Y,nextLeftDirection()),axis_Y,nextLeftDirection());
+        return PixelEdge(straightNeighbor.neighbor(change_axis(axis),nextLeftDirection()),change_axis(axis),nextLeftDirection());
     }
 
     
@@ -376,7 +380,7 @@ public:
         return PixelEdge(pixel.neighbor(axis,direction),axis,direction);
     }
     PixelEdge nextRight() {
-        return PixelEdge(pixel,axis_Y,nextRightDirection(direction));
+        return PixelEdge(pixel,change_axis(axis),nextRightDirection());
     }
 
 
@@ -409,12 +413,7 @@ public:
 
 
     Pixel pixelOutside() const {
-        if (axis == axis_X) {
-            return pixel.neighbor(axis_Y,-direction);
-        }
-        else {
-            return pixel.neighbor(axis_X,direction);
-        }
+        return pixel.neighbor(change_axis(axis),nextLeftDirection());
     }
 
 
@@ -438,6 +437,7 @@ bool processGroupPeriphery(Bitmap bitmap, ManagerOfGroups& manager, Pixel topPix
         if (minimumNeighborGroupColor > currentNeighborGroupColor) {
             minimumNeighborGroupColor= currentNeighborGroupColor;
         } 
+//        currentPixelEdge.pixelOutside().setColor(50);
         currentPixelEdge= currentPixelEdge.nextBorder(manager);
     }    
     while (currentPixelEdge != startPixelEdge);
