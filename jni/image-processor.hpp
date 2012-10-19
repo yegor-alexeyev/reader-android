@@ -395,37 +395,24 @@ public:
     }
 
     PixelEdge nextBorder(const ManagerOfGroups& manager) {
-        //if (!pixel.hasNeighbor(axis,direction) || !manage.isInSameGroup(pixel,pixel.neighbor(axis,direction))) {
-            //LOG("RIGHT\n");
-            //return nextRight();
-        //}
+        if (!pixel.hasNeighbor(axis,direction) || !manager.isInSameGroup(pixel,pixel.neighbor(axis,direction))) {
+            LOG("RIGHT\n");
+            return nextRight();
+        }
        
-        //Pixel nextStraightPixel= pixel.neighbor(axis,direction);
-        //if (nextStraightPixel.hasNeighbor(change_axis(axis),nextLeftDirection())) {
-            //LOG("LEFT\n");
-            //return nextLeft(); 
- 
-        if (manager.isInSameGroup(pixel, nextLeft().pixelInside()) && nextLeft().isBorder(manager)) {
+        Pixel nextStraightPixel= pixel.neighbor(axis,direction);
+        if (nextStraightPixel.hasNeighbor(change_axis(axis),nextLeftDirection()) && manager.isInSameGroup(pixel,nextStraightPixel.neighbor(change_axis(axis),nextLeftDirection()))) {
             LOG("LEFT\n");
-            return nextLeft();
+            return nextLeft(); 
         }
-        if (manager.isInSameGroup(pixel, nextStraight().pixelInside()) && nextStraight().isBorder(manager)) {
-            LOG("STRAIGHT\n");
-            return nextStraight();
-        }
-        if (!nextRight().isBorder(manager)) {
-            LOG("ERROR: non-closed perimeter can not exist\n");
-        }
-        LOG("RIGHT\n");
-        return nextRight();
+ 
+        LOG("STRAIGHT\n");
+        return nextStraight();
     }
-
 
     Pixel pixelOutside() const {
         return pixel.neighbor(change_axis(axis),nextLeftDirection());
     }
-
-
 };
 
 
@@ -447,8 +434,8 @@ bool processGroupPeriphery(Bitmap bitmap, ManagerOfGroups& manager, Pixel topPix
             if (minimumNeighborGroupColor > currentNeighborGroupColor) {
                 minimumNeighborGroupColor= currentNeighborGroupColor;
             } 
-            currentPixelEdge.pixelOutside().setColor(50);
         }
+        //currentPixelEdge.pixelInside().setColor(255);
         currentPixelEdge= currentPixelEdge.nextBorder(manager);
     }    
     while (currentPixelEdge != startPixelEdge);
