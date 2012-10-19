@@ -87,7 +87,7 @@ public:
     size_t x;
     size_t y;
 
-    bool hasNeighbor(Axis axis, int direction) {
+    bool hasNeighbor(Axis axis, int direction) const {
         if (axis == axis_X) {
             if (direction == positive_direction) {
                 return x+1 < bitmap.width;
@@ -383,18 +383,27 @@ public:
         return PixelEdge(pixel,change_axis(axis),nextRightDirection());
     }
 
+    bool hasPixelOutside() const {
+        return pixel.hasNeighbor(change_axis(axis), nextLeftDirection());
+    }
 
     bool isBorder(const ManagerOfGroups& manager) const {
+        if (!hasPixelOutside()) {
+            return true;
+        }
         return !manager.isInSameGroup(pixel,pixelOutside());
     }
 
     PixelEdge nextBorder(const ManagerOfGroups& manager) {
-        //if (!pixel.hasNeighbor(axis,direction)) {
+        //if (!pixel.hasNeighbor(axis,direction) || !manage.isInSameGroup(pixel,pixel.neighbor(axis,direction))) {
+            //LOG("RIGHT\n");
             //return nextRight();
         //}
        
         //Pixel nextStraightPixel= pixel.neighbor(axis,direction);
-        //if (nextStraightPixel.hasNeighbor(
+        //if (nextStraightPixel.hasNeighbor(change_axis(axis),nextLeftDirection())) {
+            //LOG("LEFT\n");
+            //return nextLeft(); 
  
         if (manager.isInSameGroup(pixel, nextLeft().pixelInside()) && nextLeft().isBorder(manager)) {
             LOG("LEFT\n");
@@ -429,15 +438,17 @@ bool processGroupPeriphery(Bitmap bitmap, ManagerOfGroups& manager, Pixel topPix
     PixelEdge currentPixelEdge= startPixelEdge;
     LOG("START\n");
     do {
-        LOG("AT %d %d %d %d\n", currentPixelEdge.pixelInside().x, currentPixelEdge.pixelInside().y, currentPixelEdge.pixelOutside().x, currentPixelEdge.pixelOutside().y);
-        uint8_t currentNeighborGroupColor= currentPixelEdge.pixelOutside().color();
-        if (maximumNeighborGroupColor < currentNeighborGroupColor) {
-            maximumNeighborGroupColor= currentNeighborGroupColor;
+        LOG("AT %d %d\n", currentPixelEdge.pixelInside().x, currentPixelEdge.pixelInside().y);
+        if (currentPixelEdge.hasPixelOutside()) {
+            uint8_t currentNeighborGroupColor= currentPixelEdge.pixelOutside().color();
+            if (maximumNeighborGroupColor < currentNeighborGroupColor) {
+                maximumNeighborGroupColor= currentNeighborGroupColor;
+            }
+            if (minimumNeighborGroupColor > currentNeighborGroupColor) {
+                minimumNeighborGroupColor= currentNeighborGroupColor;
+            } 
+            currentPixelEdge.pixelOutside().setColor(50);
         }
-        if (minimumNeighborGroupColor > currentNeighborGroupColor) {
-            minimumNeighborGroupColor= currentNeighborGroupColor;
-        } 
-//        currentPixelEdge.pixelOutside().setColor(50);
         currentPixelEdge= currentPixelEdge.nextBorder(manager);
     }    
     while (currentPixelEdge != startPixelEdge);
