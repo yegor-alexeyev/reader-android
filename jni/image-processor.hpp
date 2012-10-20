@@ -423,8 +423,6 @@ public:
 
 bool processGroupPeriphery(Bitmap bitmap, Pixel topPixel, Bitmap resultBitmap, Bitmap trailMap) {
     uint8_t groupColor= topPixel.color(); 
-    uint8_t maximumNeighborGroupColor= 0;
-    uint8_t minimumNeighborGroupColor= 255;
     uint8_t minimumColor= 255;
     uint8_t maximumColor= 0;
     uint32_t length= 0;
@@ -445,16 +443,6 @@ bool processGroupPeriphery(Bitmap bitmap, Pixel topPixel, Bitmap resultBitmap, B
         }
         trailPixel.setColor(trailPixel.color() | (1 << currentPixelEdge.sideNumber()));
         LOG("AT %d %d\n", currentPixelEdge.pixelInside().x, currentPixelEdge.pixelInside().y);
-        if (currentPixelEdge.hasPixelOutside()) {
-            uint8_t currentNeighborGroupColor= currentPixelEdge.pixelOutside().color();
-            if (maximumNeighborGroupColor < currentNeighborGroupColor) {
-                maximumNeighborGroupColor= currentNeighborGroupColor;
-            }
-            if (minimumNeighborGroupColor > currentNeighborGroupColor) {
-                minimumNeighborGroupColor= currentNeighborGroupColor;
-            } 
-        }
-        //currentPixelEdge.pixelInside().setColor(255);
         currentPixelEdge= currentPixelEdge.nextBorder();
     }    
     while (currentPixelEdge != startPixelEdge);
