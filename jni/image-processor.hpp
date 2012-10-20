@@ -443,7 +443,6 @@ bool processGroupPeriphery(Bitmap bitmap, Pixel topPixel, Bitmap resultBitmap, B
             LOG("RETURN FALSE");
             return false;
         }
-        trailPixel.setColor(trailPixel.color() | (1 << currentPixelEdge.sideNumber()));
         LOG("AT %d %d\n", pixel.x, pixel.y);
         currentPixelEdge= currentPixelEdge.nextBorder(minimumColor, maximumColor);
     }    
@@ -457,6 +456,7 @@ bool processGroupPeriphery(Bitmap bitmap, Pixel topPixel, Bitmap resultBitmap, B
     do {
         Pixel pixel= currentPixelEdge.pixelInside();
         Pixel trailPixel= trailMap.pixel(pixel.x,pixel.y);
+        trailPixel.setColor(trailPixel.color() | (1 << currentPixelEdge.sideNumber()));
         resultBitmap.pixel(pixel.x,pixel.y).setColor(255);
         if (currentPixelEdge.hasPixelOutside()) {
             resultBitmap.pixel(currentPixelEdge.pixelOutside().x, currentPixelEdge.pixelOutside().y).setColor(0);
