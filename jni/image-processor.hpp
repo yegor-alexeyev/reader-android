@@ -394,11 +394,11 @@ public:
     }
 
     bool isBorder() const {
-        return !hasPixelOutside() || abs(pixelOutside().color() - pixel.color()) > 30;
+        return !hasPixelOutside() || abs(pixelOutside().color() - pixel.color()) > 0;
     }
 
-    PixelEdge nextBorder() {
-    //PixelEdge nextBorder(uint8_t minimalColor, uint8_t maximalColor) {
+    //PixelEdge nextBorder() {
+    PixelEdge nextBorder(uint8_t minimumColor, uint8_t maximumColor) {
         
         if (nextRight().isBorder()) {
             LOG("RIGHT\n");
@@ -422,11 +422,11 @@ public:
 
 
 bool processGroupPeriphery(Bitmap bitmap, Pixel topPixel, Bitmap resultBitmap, Bitmap trailMap) {
-    uint8_t groupColor= topPixel.color(); 
+    uint32_t length= 0;
+    const PixelEdge startPixelEdge(topPixel,axis_X,positive_direction);
+    {
     uint8_t minimumColor= 255;
     uint8_t maximumColor= 0;
-    uint32_t length= 0;
-    PixelEdge startPixelEdge(topPixel,axis_X,positive_direction);
     if (!startPixelEdge.isBorder()) {
         return false;
     }
@@ -436,19 +436,24 @@ bool processGroupPeriphery(Bitmap bitmap, Pixel topPixel, Bitmap resultBitmap, B
     do {
         length++;
         Pixel pixel= currentPixelEdge.pixelInside();
+        if (pixel.color() > maximumColor) maximumColor= pixel.color();
+        if (pixel.color() < minimumColor) minimumColor= pixel.color();
         Pixel trailPixel= trailMap.pixel(pixel.x,pixel.y);
         if ((trailPixel.color() & (1 << currentPixelEdge.sideNumber())) != 0) {
             LOG("RETURN FALSE");
             return false;
         }
         trailPixel.setColor(trailPixel.color() | (1 << currentPixelEdge.sideNumber()));
-        LOG("AT %d %d\n", currentPixelEdge.pixelInside().x, currentPixelEdge.pixelInside().y);
-        currentPixelEdge= currentPixelEdge.nextBorder();
+        LOG("AT %d %d\n", pixel.x, pixel.y);
+        currentPixelEdge= currentPixelEdge.nextBorder(minimumColor, maximumColor);
     }    
     while (currentPixelEdge != startPixelEdge);
+    }
     if (length < 30) return false;
     {
     PixelEdge currentPixelEdge= startPixelEdge;
+    uint8_t minimumColor= 255;
+    uint8_t maximumColor= 0;
     do {
         Pixel pixel= currentPixelEdge.pixelInside();
         Pixel trailPixel= trailMap.pixel(pixel.x,pixel.y);
@@ -456,7 +461,7 @@ bool processGroupPeriphery(Bitmap bitmap, Pixel topPixel, Bitmap resultBitmap, B
         if (currentPixelEdge.hasPixelOutside()) {
             resultBitmap.pixel(currentPixelEdge.pixelOutside().x, currentPixelEdge.pixelOutside().y).setColor(0);
         }
-        currentPixelEdge= currentPixelEdge.nextBorder();
+        currentPixelEdge= currentPixelEdge.nextBorder(minimumColor, maximumColor);
     }
     while (currentPixelEdge != startPixelEdge);
     }
