@@ -425,17 +425,15 @@ public:
 };
 
 
-
-bool processGroupPeriphery(Bitmap bitmap, Pixel topPixel, Bitmap resultBitmap, Bitmap trailMap) {
+uint32_t iteratePerimeter(Bitmap bitmap, Pixel topPixel, Bitmap resultBitmap, Bitmap trailMap, bool markTrail) {
     uint32_t length= 0;
     const PixelEdge startPixelEdge(topPixel,axis_X,positive_direction);
-    {
+
     uint8_t minimumColor= topPixel.color();
     uint8_t maximumColor= topPixel.color();
     if (!startPixelEdge.isBorder(minimumColor, maximumColor)) {
-        return false;
+        return 0;
     }
-    
     PixelEdge currentPixelEdge= startPixelEdge;
     LOG("START\n");
     do {
@@ -445,33 +443,24 @@ bool processGroupPeriphery(Bitmap bitmap, Pixel topPixel, Bitmap resultBitmap, B
         if (pixel.color() < minimumColor) minimumColor= pixel.color();
         Pixel trailPixel= trailMap.pixel(pixel.x,pixel.y);
         if ((trailPixel.color() & (1 << currentPixelEdge.sideNumber())) != 0) {
-            LOG("RETURN FALSE");
-            return false;
+            LOG("RETURN FALSE\n");
+            return 0;
+        }
+        if (markTrail) {
+            trailPixel.setColor(trailPixel.color() | (1 << currentPixelEdge.sideNumber()));
+            resultBitmap.pixel(pixel.x,pixel.y).setColor(255);
         }
         LOG("AT %d %d\n", pixel.x, pixel.y);
         currentPixelEdge= currentPixelEdge.nextBorder(minimumColor, maximumColor);
     }    
     while (currentPixelEdge != startPixelEdge);
-    }
+
+    return length;
+}
+
+bool processGroupPeriphery(Bitmap bitmap, Pixel topPixel, Bitmap resultBitmap, Bitmap trailMap) {
+    uint32_t length= iteratePerimeter(bitmap,topPixel,resultBitmap,trailMap, false);
     if (length < 30) return false;
-    {
-    PixelEdge currentPixelEdge= startPixelEdge;
-    uint8_t minimumColor= topPixel.color();
-    uint8_t maximumColor= topPixel.color();
-    LOG("START\n");
-    do {
-        Pixel pixel= currentPixelEdge.pixelInside();
-        if (pixel.color() > maximumColor) maximumColor= pixel.color();
-        if (pixel.color() < minimumColor) minimumColor= pixel.color();
-        Pixel trailPixel= trailMap.pixel(pixel.x,pixel.y);
-        trailPixel.setColor(trailPixel.color() | (1 << currentPixelEdge.sideNumber()));
-        resultBitmap.pixel(pixel.x,pixel.y).setColor(255);
-        if (currentPixelEdge.hasPixelOutside()) {
-            resultBitmap.pixel(currentPixelEdge.pixelOutside().x, currentPixelEdge.pixelOutside().y).setColor(0);
-        }
-        currentPixelEdge= currentPixelEdge.nextBorder(minimumColor, maximumColor);
-    }
-    while (currentPixelEdge != startPixelEdge);
-    }
+    iteratePerimeter(bitmap,topPixel,resultBitmap,trailMap, true);
     return true;
 }
