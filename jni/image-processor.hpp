@@ -393,19 +393,24 @@ public:
         return pixel.hasNeighbor(change_axis(axis), nextLeftDirection());
     }
 
-    bool isBorder() const {
-        return !hasPixelOutside() || abs(pixelOutside().color() - pixel.color()) > 0;
+    bool isBorder(uint8_t minimumColor, uint8_t maximumColor) const {
+        if (!hasPixelOutside()) {
+            return true;
+        }
+        if (pixelOutside().color() > maximumColor) maximumColor= pixelOutside().color();
+        if (pixelOutside().color() < minimumColor) minimumColor= pixelOutside().color();
+        return maximumColor - minimumColor > 10; 
     }
 
     //PixelEdge nextBorder() {
     PixelEdge nextBorder(uint8_t minimumColor, uint8_t maximumColor) {
         
-        if (nextRight().isBorder()) {
+        if (nextRight().isBorder(minimumColor, maximumColor)) {
             LOG("RIGHT\n");
             return nextRight();
         }
        
-        if (!nextStraight().isBorder()) {
+        if (!nextStraight().isBorder(minimumColor,maximumColor)) {
             LOG("LEFT\n");
             return nextLeft(); 
         }
@@ -425,9 +430,9 @@ bool processGroupPeriphery(Bitmap bitmap, Pixel topPixel, Bitmap resultBitmap, B
     uint32_t length= 0;
     const PixelEdge startPixelEdge(topPixel,axis_X,positive_direction);
     {
-    uint8_t minimumColor= 255;
-    uint8_t maximumColor= 0;
-    if (!startPixelEdge.isBorder()) {
+    uint8_t minimumColor= topPixel.color();
+    uint8_t maximumColor= topPixel.color();
+    if (!startPixelEdge.isBorder(minimumColor, maximumColor)) {
         return false;
     }
     
@@ -443,6 +448,7 @@ bool processGroupPeriphery(Bitmap bitmap, Pixel topPixel, Bitmap resultBitmap, B
             LOG("RETURN FALSE");
             return false;
         }
+        trailPixel.setColor(trailPixel.color() | (1 << currentPixelEdge.sideNumber()));
         LOG("AT %d %d\n", pixel.x, pixel.y);
         currentPixelEdge= currentPixelEdge.nextBorder(minimumColor, maximumColor);
     }    
@@ -451,12 +457,13 @@ bool processGroupPeriphery(Bitmap bitmap, Pixel topPixel, Bitmap resultBitmap, B
     if (length < 30) return false;
     {
     PixelEdge currentPixelEdge= startPixelEdge;
-    uint8_t minimumColor= 255;
-    uint8_t maximumColor= 0;
+    uint8_t minimumColor= topPixel.color();
+    uint8_t maximumColor= topPixel.color();
     do {
         Pixel pixel= currentPixelEdge.pixelInside();
+        if (pixel.color() > maximumColor) maximumColor= pixel.color();
+        if (pixel.color() < minimumColor) minimumColor= pixel.color();
         Pixel trailPixel= trailMap.pixel(pixel.x,pixel.y);
-        trailPixel.setColor(trailPixel.color() | (1 << currentPixelEdge.sideNumber()));
         resultBitmap.pixel(pixel.x,pixel.y).setColor(255);
         if (currentPixelEdge.hasPixelOutside()) {
             resultBitmap.pixel(currentPixelEdge.pixelOutside().x, currentPixelEdge.pixelOutside().y).setColor(0);
