@@ -399,18 +399,24 @@ public:
         }
         if (pixelOutside().color() > maximumColor) maximumColor= pixelOutside().color();
         if (pixelOutside().color() < minimumColor) minimumColor= pixelOutside().color();
-        return maximumColor - minimumColor > 0; 
+        return maximumColor - minimumColor > 14; 
     }
 
     //PixelEdge nextBorder() {
-    PixelEdge nextBorder(uint8_t minimumColor, uint8_t maximumColor) {
+    PixelEdge nextBorder(uint8_t& minimumColor, uint8_t& maximumColor) {
         
         if (nextRight().isBorder(minimumColor, maximumColor)) {
             LOG("RIGHT\n");
             return nextRight();
         }
+
+        
+        if (nextStraight().pixelInside().color() > maximumColor) maximumColor= nextStraight().pixelInside().color();
+        if (nextStraight().pixelInside().color() < minimumColor) minimumColor= nextStraight().pixelInside().color();
        
         if (!nextStraight().isBorder(minimumColor,maximumColor)) {
+            if (nextLeft().pixelInside().color() > maximumColor) maximumColor= nextLeft().pixelInside().color();
+            if (nextLeft().pixelInside().color() < minimumColor) minimumColor= nextLeft().pixelInside().color();
             LOG("LEFT\n");
             return nextLeft(); 
         }
@@ -439,8 +445,8 @@ uint32_t iteratePerimeter(Bitmap bitmap, Pixel topPixel, Bitmap resultBitmap, Bi
     do {
         length++;
         Pixel pixel= currentPixelEdge.pixelInside();
-        if (pixel.color() > maximumColor) maximumColor= pixel.color();
-        if (pixel.color() < minimumColor) minimumColor= pixel.color();
+        //if (pixel.color() > maximumColor) maximumColor= pixel.color();
+        //if (pixel.color() < minimumColor) minimumColor= pixel.color();
         Pixel trailPixel= trailMap.pixel(pixel.x,pixel.y);
         if ((trailPixel.color() & (1 << currentPixelEdge.sideNumber())) != 0) {
             LOG("RETURN FALSE\n");
