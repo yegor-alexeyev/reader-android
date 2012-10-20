@@ -399,7 +399,7 @@ public:
         }
         if (pixelOutside().color() > maximumColor) maximumColor= pixelOutside().color();
         if (pixelOutside().color() < minimumColor) minimumColor= pixelOutside().color();
-        return maximumColor - minimumColor > 10; 
+        return maximumColor - minimumColor > 0; 
     }
 
     //PixelEdge nextBorder() {
@@ -448,7 +448,6 @@ bool processGroupPeriphery(Bitmap bitmap, Pixel topPixel, Bitmap resultBitmap, B
             LOG("RETURN FALSE");
             return false;
         }
-        trailPixel.setColor(trailPixel.color() | (1 << currentPixelEdge.sideNumber()));
         LOG("AT %d %d\n", pixel.x, pixel.y);
         currentPixelEdge= currentPixelEdge.nextBorder(minimumColor, maximumColor);
     }    
@@ -459,11 +458,13 @@ bool processGroupPeriphery(Bitmap bitmap, Pixel topPixel, Bitmap resultBitmap, B
     PixelEdge currentPixelEdge= startPixelEdge;
     uint8_t minimumColor= topPixel.color();
     uint8_t maximumColor= topPixel.color();
+    LOG("START\n");
     do {
         Pixel pixel= currentPixelEdge.pixelInside();
         if (pixel.color() > maximumColor) maximumColor= pixel.color();
         if (pixel.color() < minimumColor) minimumColor= pixel.color();
         Pixel trailPixel= trailMap.pixel(pixel.x,pixel.y);
+        trailPixel.setColor(trailPixel.color() | (1 << currentPixelEdge.sideNumber()));
         resultBitmap.pixel(pixel.x,pixel.y).setColor(255);
         if (currentPixelEdge.hasPixelOutside()) {
             resultBitmap.pixel(currentPixelEdge.pixelOutside().x, currentPixelEdge.pixelOutside().y).setColor(0);
