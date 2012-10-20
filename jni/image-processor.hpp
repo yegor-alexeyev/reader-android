@@ -466,7 +466,7 @@ uint32_t iteratePerimeter(Bitmap bitmap, Pixel topPixel, Bitmap resultBitmap, Bi
 
 bool processGroupPeriphery(Bitmap bitmap, Pixel topPixel, Bitmap resultBitmap, Bitmap trailMap) {
     uint32_t length= iteratePerimeter(bitmap,topPixel,resultBitmap,trailMap, false);
-    if (length < 30) return false;
+    if (length < 20) return false;
     iteratePerimeter(bitmap,topPixel,resultBitmap,trailMap, true);
     return true;
 }
